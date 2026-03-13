@@ -22,14 +22,21 @@
 
 ---
 
-## Machine IP Table (Current)
+## 
 
-| Machine  | IP Address     |
-|----------|----------------|
-| Mini PC  | 192.168.2.201  |
-| worker1  | 192.168.2.208  |
-| worker2  | 192.168.2.207  |
-| worker3  | 192.168.2.202  |
+| Device          | Local IP     | Tailscale IP      | Hostname       | Role                               |
+|-----------------|--------------|-------------------|----------------|------------------------------------|
+| Mini PC         | 192.168.2.201| (run `tailscale ip`)| debian-master  | K3s master (Control Plane)         |
+| Ubuntu VM       | 192.168.2.214| N/A    | rancher-vm     | Rancher server (not a cluster node)|
+| kuberserver     | 192.168.2.204| (if any)          | kuberserver    | Rancher host, K3s worker                   |
+| worker1         | 192.168.2.208| 100.93.189.34*    | worker1        | K3s worker, LoRa host          |
+| worker2         | 192.168.2.207| N/A   | worker2        | K3s worker                         |
+| worker3         | 192.168.2.202| N/A    | worker3        | K3s worker                         |
+| Switch          | 10.0.0.2 (planned) | –                | –              | NETGEAR GS305E                      |
+
+**Rancher internal service IP:** `10.43.143.192` (accessible within cluster; for UI use `https://192.168.2.214:30443`)
+
+*Tailscale IP for worker1 obtained after sharing; others will be added as they join the tailnet.*
 
 ---
 
