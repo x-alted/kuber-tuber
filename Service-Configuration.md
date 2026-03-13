@@ -59,7 +59,7 @@ kubectl label node kuberserver hardware=vm role=worker
 |------|--------|-------------------|--------------|
 | 1 | Install Docker | `sudo apt update && sudo apt install docker.io -y`<br>`sudo systemctl enable --now docker` | `sudo systemctl status docker` |
 | 2 | Install kubectl | `curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"`<br>`chmod +x kubectl && sudo mv kubectl /usr/local/bin/` | `kubectl version --client` |
-| 3 | Install Helm | `curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 || bash` | `helm version` |
+| 3 | Install Helm | `curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 bash` | `helm version` |
 | 4 | Copy kubeconfig from mini PC | `scp user@192.168.2.201:/etc/rancher/k3s/k3s.yaml ~/k3s.yaml`<br>Edit file: change `server: https://127.0.0.1:6443` to `server: https://192.168.2.201:6443`<br>Set env: `export KUBECONFIG=~/k3s.yaml` (add to `~/.bashrc`) | `kubectl get nodes` lists all nodes |
 | 5 | Install cert-manager CRDs | `kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.crds.yaml` | No errors |
 | 6 | Add cert-manager Helm repo | `helm repo add jetstack https://charts.jetstack.io`<br>`helm repo update` | Repo added |
