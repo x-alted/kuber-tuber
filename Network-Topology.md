@@ -1,4 +1,4 @@
-## Current IP Assignments (as of March 18, 2026)
+## Current IP Assignments (as of March 13, 2026)
 
 | Device          | Local IP     | Hostname       | Role                               |
 |-----------------|--------------|----------------|------------------------------------|
