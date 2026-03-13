@@ -13,9 +13,10 @@
   1.2.2 [Pi #2 – Worker #1](#122-raspberry-pi-4-unit-2--worker-1)  
   1.2.3 [Pi #3 – Worker #2](#123-raspberry-pi-4-unit-3--worker-2)  
  1.3 [LoRa HAT on Pi #1](#13-lora-hat-on-pi-1)  
- 1.4 [Networking Core – NETGEAR GS305E Configuration](#14-networking-core--netgear-gs305e-configuration)  
- 1.5 [Node Failure Scenarios](#15-node-failure-scenarios)  
-2. [Pre-Service Functionality Verification](#2-pre-service-functionality-verification)  
+ 1.4 [Networking Core – NETGEAR GS305E Configuration](#14-networking-core--netgear-gs305e-configuration)
+  1.5 [Rancher (Ubuntu Server VM)](#15-Rancher-Configuration-Ubuntu-VM)
+ 1.6 [Node Failure Scenarios](#15-node-failure-scenarios)  
+3. [Pre-Service Functionality Verification](#2-pre-service-functionality-verification)  
  2.1 [Connectivity Matrix: Result Tracking](#21-connectivity-matrix-result-tracking)  
  2.2 [Pre-Service Hand-Off](#22-pre-service-hand-off)  
 
