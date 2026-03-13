@@ -104,10 +104,9 @@ sudo tailscale up
 - **VLANs:** Not used (all devices on default VLAN 1; no inter‑VLAN routing needed)
 - **Physical connections:**
   - Port 1: Mini PC (`192.168.2.201`)
-  - Port 2: Ubuntu VM (`192.168.2.214`)
   - Port 3: `worker1` (`192.168.2.208`)
   - Port 4: `worker2` (`192.168.2.207`)
-  - Port 5: `worker3` (`192.168.2.202`) – connected later
+  - Port 5: `worker3` (`192.168.2.202`) 
 - **Access:** Web interface at `http://192.168.2.204` (login: blank / password – changed to project password, stored securely)
 
 ---
