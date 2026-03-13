@@ -85,9 +85,10 @@ Tailscale was used briefly to allow Nick to access `worker1` remotely. It is no 
 
 - **Installed on:** mini PC, `worker1`
 - **Installation command:**
-
-[CODE_BLOCK_4]
-
+```markdown
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up
+```
 - **Authentication:** Via browser (team members logged in with their own accounts).
 - **Sharing:** `worker1` shared with Nick via Tailscale admin console → share link.
 - **Tailscale IPs (historical):**
@@ -134,7 +135,6 @@ Tailscale was used briefly to allow Nick to access `worker1` remotely. It is no 
 - **Language:** Python
 - **Function:** Receive LoRa packets on `worker1`, forward to Dendrite (Matrix) server.
 - **Repository location:** (to be created)
-- **Owner:** Anthony (with Nick/Alex assisting)
 - **Encryption:** Basic payload encryption to be added by Nathan.
 
 ---
