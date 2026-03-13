@@ -193,21 +193,6 @@
 
 ### Week of March 13, 2026
 - **Accomplishments:**
-  - Tailscale set up for Nick; he can now SSH into worker1 remotely.
-  - Began Rancher installation on mini PC (Nathan).
-  - Began K3s cluster setup (Nathan/Alex).
-- **Decisions:**
-  - Use Tailscale for remote access instead of port forwarding.
-  - Static IPs postponed; working with DHCP for now.
-- **Next Steps:**
-  - Complete Rancher deployment.
-  - Join worker Pis to K3s cluster.
-  - Nick to continue LoRa HAT configuration.
-- **Issues:**
-  - None so far.
-
-### Week of March 13, 2026
-- **Accomplishments:**
   - Tailscale set up on mini PC and worker1; Nick can now SSH remotely into worker1 for LoRa HAT configuration.
   - Began Rancher installation on mini PC (Nathan).
   - Began K3s cluster setup (Nathan/Alex); master node initialized, worker join tokens prepared.
