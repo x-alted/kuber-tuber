@@ -205,3 +205,20 @@
   - Nick to continue LoRa HAT configuration.
 - **Issues:**
   - None so far.
+
+### Week of March 13, 2026
+- **Accomplishments:**
+  - Tailscale set up on mini PC and worker1; Nick can now SSH remotely into worker1 for LoRa HAT configuration.
+  - Began Rancher installation on mini PC (Nathan).
+  - Began K3s cluster setup (Nathan/Alex); master node initialized, worker join tokens prepared.
+  - Acquired Cardputer ADV with LoRa Cap 868 (868 MHz) – will be used as a mobile field node for testing.
+- **Decisions:**
+  - Use Tailscale for all remote access instead of exposing SSH or configuring port forwarding.
+  - Static IPs postponed; continue using DHCP addresses for now; will assign planned static IPs after initial services are stable.
+- **Next Steps:**
+  - Complete Rancher deployment and access dashboard.
+  - Join worker2 and worker3 to K3s cluster.
+  - Nick to continue LoRa HAT configuration on worker1 (via Tailscale).
+  - Anthony to begin developing LoRa‑Matrix bridge and Cardputer client.
+- **Issues:**
+  - Nick initially couldn’t ping worker1’s Tailscale IP; resolved by having Nick run `sudo tailscale up` and re‑authenticate.
