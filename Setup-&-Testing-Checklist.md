@@ -2,7 +2,7 @@
 
 **Version:** 1.1  
 **Created by:** Alex  
-**Date:** February 11, 2026 – February 18, 2026 (updated March 6, 2026)
+**Date:** February 11, 2026 – March 13, 2026
 
 ## Table of Contents
 
@@ -24,7 +24,6 @@
 ---
 
 ## 0.5 - Current IP Table
-## Current IP Assignments (as of March 18, 2026)
 
 | Device          | Local IP     | Hostname       | Role                               |
 |-----------------|--------------|----------------|------------------------------------|
