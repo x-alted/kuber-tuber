@@ -6,8 +6,8 @@ This folder contains all project documentation for our cybersecurity capstone.
 
 | File | Description |
 |------|-------------|
-| [`SETUP-CHECKLIST.md`](./SETUP-CHECKLIST.md) | Hardware/OS validation checklist and weekly progress log. |
-| [`NETWORK-TOPOLOGY.md`](./NETWORK-TOPOLOGY.md) | IP addresses, Tailscale details, network diagrams. |
-| [`SERVICE-CONFIG.md`](./SERVICE-CONFIG.md) | Installation steps and configuration for K3s, Rancher, Dendrite, LoRa bridge. |
-| [`ISSUES-LOG.md`](./ISSUES-LOG.md) | Running log of problems encountered and how they were resolved. |
+| [`SETUP-CHECKLIST.md`](./Setup-Checklist.md) | Hardware/OS validation checklist and weekly progress log. |
+| [`NETWORK-TOPOLOGY.md`](./Network-Topology.md) | IP addresses, Tailscale details, network diagrams. |
+| [`SERVICE-CONFIG.md`](./Service-Config.md) | Installation steps and configuration for K3s, Rancher, Dendrite, LoRa bridge. |
+| [`ISSUES-LOG.md`](./ISSUES-Log.md) | Running log of problems encountered and how they were resolved. |
 | [`TEST-RESULTS.md`](./TEST-RESULTS.md) | Detailed test outcomes (connectivity matrix, failover tests, LoRa range, etc.). |
