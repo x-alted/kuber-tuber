@@ -6,6 +6,7 @@
 
 ## Table of Contents
 
+0.5 [Current IP Table](#05-current-ip-table)
 1. [Individual Hardware & OS Validation](#1-individual-hardware--os-validation)  
  1.1 [Mini PC (K3s Master / Matrix Server)](#11-mini-pc-k3s-master--matrix-server)  
  1.2 [Raspberry Pi 4](#12-raspberry-pi-4)  
@@ -22,7 +23,7 @@
 
 ---
 
-## 
+## 0.5 - Current IP Table
 
 | Device          | Local IP     | Tailscale IP      | Hostname       | Role                               |
 |-----------------|--------------|-------------------|----------------|------------------------------------|
