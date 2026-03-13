@@ -132,7 +132,36 @@
 | Assign VLANs               | Configure VLAN membership as desired. For simple isolation, create separate VLANs for specific ports.                                                                                                                                       | Isolation breaking connectivity   | [ ]       |
 | Save Configuration         | Click **Apply** on all changes. Settings persist through power cycle.                                                                                                                                                                        |                                   | [ ]       |
 
-### 1.5 Node Failure Scenarios
+## 1.5 Rancher Configuration (Ubuntu VM)
+
+**Completed by:**  
+**Date:**
+
+| Action | Expected Outcome | Concerns | Complete? |
+|--------|------------------|----------|-----------|
+| **VM Network Verification** | Ubuntu VM (192.168.2.214) can ping mini PC (192.168.2.201) and all worker Pis. | Firewall rules, VirtualBox network mode (Bridged). | [ ] |
+| **Install Docker** | Docker installed and running: `sudo systemctl status docker` shows active. | | [ ] |
+| **Install kubectl** | `kubectl version --client` shows version. | | [ ] |
+| **Copy kubeconfig from mini PC** | `scp user@192.168.2.201:/etc/rancher/k3s/k3s.yaml ~/k3s.yaml` succeeds. | SSH access, correct username. | [ ] |
+| **Configure kubectl context** | Set `export KUBECONFIG=~/k3s.yaml` (add to `~/.bashrc`). Edit `server:` line to `https://192.168.2.201:6443`. Test: `kubectl get nodes` lists mini PC and workers. | IP address correct; port 6443 reachable. | [ ] |
+| **Install Helm** | `helm version` shows client version. | | [ ] |
+| **Install cert-manager CRDs** | `kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.crds.yaml` succeeds. | CRDs installed without error. | [ ] |
+| **Add cert-manager Helm repo** | `helm repo add jetstack https://charts.jetstack.io` and `helm repo update` succeed. | | [ ] |
+| **Install cert-manager** | `helm install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --version v1.14.4` succeeds. If release exists, handle: `helm uninstall cert-manager -n cert-manager` or `helm upgrade`. | Helm release conflicts; if "in progress", delete Helm secrets manually (`kubectl get secrets -n cert-manager`). | [ ] |
+| **Verify cert-manager** | All cert-manager pods running: `kubectl get pods -n cert-manager -w`. Wait for rollout: `kubectl rollout status deployment -n cert-manager cert-manager`. | | [ ] |
+| **Add Rancher Helm repo** | `helm repo add rancher-latest https://releases.rancher.com/server-charts/latest` and `helm repo update` succeed. | | [ ] |
+| **Install Rancher** | `helm install rancher rancher-latest/rancher --namespace cattle-system --create-namespace --set hostname=rancher.kuber-tuber.local --set replicas=1 --set bootstrapPassword=admin` succeeds. If name in use, uninstall previous: `helm uninstall rancher -n cattle-system` (or delete secrets). | Helm release conflicts; pending operations. | [ ] |
+| **Wait for Rancher rollout** | `kubectl -n cattle-system rollout status deploy/rancher` shows success. | Takes a few minutes. | [ ] |
+| **Get Rancher service NodePort** | `kubectl get svc -n cattle-system rancher` shows port mapping (e.g., `443:30443/TCP`). | | [ ] |
+| **Access Rancher UI** | Browser to `https://192.168.2.214:<NodePort>` loads login page. Accept self‑signed cert warning. | Firewall may need to allow port. | [ ] |
+| **Retrieve admin password** | If `bootstrapPassword=admin` doesn't work, run:<br>• `kubectl get secret -n cattle-system bootstrap-secret -o go-template='{{.data.bootstrapPassword\|base64decode}}'`<br>• OR `kubectl exec -n cattle-system deploy/rancher -- rancher reset-admin` (if that command exists; otherwise `cattle reset-password`). | Password not set; secret not found. | [ ] |
+| **Log in to Rancher** | Successfully log in with admin credentials (username `admin`). Change password if prompted. | | [ ] |
+| **Import existing K3s cluster** | In Rancher UI, click **Import Existing**, name cluster (e.g., `k3s-cluster`), copy the provided `kubectl` command and run it on Ubuntu VM. Wait for cluster to appear as active. | Cluster must be reachable; network routing. | [ ] |
+| **Verify cluster in Rancher** | Nodes, workloads, and namespaces visible in Rancher dashboard. | | [ ] |
+
+
+
+### 1.6 Node Failure Scenarios
 
 **Completed by:**  
 **Date:**
