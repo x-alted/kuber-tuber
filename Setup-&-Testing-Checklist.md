@@ -220,31 +220,44 @@
 - **Issues/Notes:**
   - SSH key deployment postponed; using passwords temporarily.
 
+
 ### Week of March 18, 2026
 - **Accomplishments:**
-    - **Rancher fully operational** on Ubuntu VM (192.168.2.214). Dashboard accessible and cluster imported.
-  - **K3s cluster now consists of four nodes:**
+  - **Tailscale fully deployed** for remote access:
+    - Installed on mini PC (192.168.2.201) and worker1 (192.168.2.208).
+    - worker1 now has Tailscale IP `100.93.189.34` and is shared with Nick.
+    - Nick can SSH into worker1 remotely to work on LoRa HAT configuration without port forwarding.
+    - Minor connectivity issue resolved by re‑authenticating Tailscale on Nick’s machine.
+  - **K3s cluster now consists of five nodes** (all Pis joined):
     - `debian-master` (192.168.2.201) – Control Plane
-    - `kuberserver` (192.168.2.204) – Worker (new node, possibly Ubuntu VM or additional machine)
+    - `kuberserver` (192.168.2.204) – Worker (additional machine, role confirmed)
     - `worker1` (192.168.2.208) – Worker, also serves as **LoRa host** (LoRa HAT attached)
     - `worker2` (192.168.2.207) – Worker
-    - `worker3` (192.168.2.202) - Worker.
-  - All nodes running Kubernetes v1.34.5+k3s1.
-  - Verified node health via Rancher UI: all nodes `Active`, resource usage low.
+    - `worker3` (192.168.2.202) – Worker (newly joined this week)
+    - All nodes running Kubernetes v1.34.5+k3s1 and marked `Active` in Rancher.
+  - **Rancher fully operational** on Ubuntu VM (192.168.2.214):
+    - Dashboard accessible at `https://192.168.2.214:30443`.
+    - Cluster imported successfully; all nodes visible with resource usage (CPU ~2‑21%, RAM low).
+    - Bootstrap password issue resolved by retrieving secret from Kubernetes.
   - **LoRa Progress (Nick):**
-    - Continued LoRa HAT configuration on worker1 via Tailscale remote access.
+    - Continued configuration of LoRa HAT on worker1 via Tailscale.
   - **Documentation Updates:**
-    - All project docs migrated to GitHub `/docs` folder.
-    - Weekly log updated, network topology refreshed with Tailscale IPs, service config notes added for Rancher installation steps.
+    - Migrated all project docs to GitHub `/docs` folder (Markdown).
+    - Updated network topology with Tailscale IPs and node roles.
+    - Added Rancher installation steps to `SERVICE-CONFIG.md`.
+    - Created `TEST-RESULTS.md` and began logging LoRa tests.
 - **Decisions:**
-  - Rancher will remain on Ubuntu VM for the duration of the project (not moved back to mini PC).
-  - Static IPs for Pis will be configured after LoRa integration is stable (to avoid rework).
-  - Will proceed with K3s worker joins for worker2 and worker3 next week.
+  - Rancher will remain on Ubuntu VM for the duration of the project.
+  - Static IPs for Pis will be set after LoRa integration stabilises.
+  - Tailscale will be used for all remote access; no port forwarding required.
+  - worker1 explicitly designated as the LoRa gateway in all documentation.
 - **Next Steps:**
-  - Basic send/receive tests performed between worker1 and a second LoRa device.
-  - Document initial range tests and signal strength observations.
-  - Begin development of LoRa‑Matrix bridge (Anthony/Nick) and Cardputer client (Alex).
+  - Basic send/receive tests performed between worker1 and a second LoRa module (Cardputer pending).
+  - Initial range and signal strength observations recorded in `TEST-RESULTS.md`.
+  - Complete LoRa‑Matrix bridge development (Anthony/Nick) and Cardputer client (Alex).
   - Implement basic encryption for LoRa payloads (Nathan).
-  - Prepare test plan for end‑to‑end encrypted message flow: Cardputer → LoRa → worker1 → Matrix → Rancher UI.
+  - Conduct end‑to‑end test: Cardputer → LoRa → worker1 → Matrix → Rancher UI.
+  - Document results and refine encryption as needed.
+  - Prepare for Week 5 resilience testing (simulate Pi failure, pod rescheduling).
 - **Issues:**
   - Rancher bootstrap password not honoured; worked around by retrieving from Kubernetes secret. (Resolved)
