@@ -36,51 +36,62 @@ kubectl label node worker2 hardware=pi role=worker
 kubectl label node worker3 hardware=pi role=worker
 
 Rancher
-Installed via Helm on March 13, 2026
+Replace the existing Rancher section with this comprehensive version:
 
-Helm repo added:
+markdown
+## Rancher
 
-bash
+**Host:** Ubuntu 22.04 VM (192.168.2.214) running on VirtualBox.
+
+### Installation Steps (March 13)
+
+1. **Install Docker** (if not already present):
+   ```bash
+   sudo apt update && sudo apt install docker.io -y
+   sudo systemctl enable --now docker
+Install kubectl:
+
+```bash
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+chmod +x kubectl && sudo mv kubectl /usr/local/bin/
+```
+Install Helm:
+
+```bash
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+```
+Add Rancher Helm repo and create namespace:
+```bash
 helm repo add rancher-latest https://releases.rancher.com/server-charts/latest
-Install command:
-
-bash
+kubectl create namespace cattle-system
+Install Rancher with self‑signed certificate (temporary):
+```
+```bash
 helm install rancher rancher-latest/rancher \
   --namespace cattle-system \
-  --create-namespace \
-  --set hostname=rancher.10.0.0.10.sslip.io \
-  --set bootstrapPassword=admin \
-  --set replicas=1
-Access URL: https://<tailscale-ip>:30443 (or via sslip.io domain)
+  --set hostname=rancher.kuber-tuber.local \
+  --set replicas=1 \
+  --set bootstrapPassword=admin
+Wait for Rancher pods to be ready:
+```
+```bash
+kubectl get pods -n cattle-system -w
+```
+Access Rancher UI:
 
-TLS: Self‑signed certificate (for now)
+After pods are running, access at: https://192.168.2.214:30443
 
-Dendrite (Matrix Server)
-Status: Not yet installed
+Accept the self‑signed certificate warning.
 
-Planned installation: Week of March 20
+Log in with username admin and password admin (you will be prompted to change it).
 
-Database: SQLite (simplicity)
+Connect K3s cluster to Rancher:
 
-Configuration file location: /etc/dendrite/dendrite.yaml
-
-LoRa‑Matrix Bridge (Python service on Pi #1)
-Repository: [link to GitHub repo if applicable]
-
-Dependencies: pip install pyserial requests
-
-Configuration file: bridge_config.json with fields:
-
-json
-{
-  "lora_port": "/dev/ttyS0",
-  "baud_rate": 115200,
-  "matrix_homeserver": "http://dendrite.local:8008",
-  "matrix_user": "@lora_bridge:yourdomain",
-  "matrix_password": "********"
-}
-Startup: Managed via systemd unit file (see systemd/ folder)
-
+On the mini PC (K3s master), copy the kubeconfig file:
+```bash
+sudo cat /etc/rancher/k3s/k3s.yaml
+```
+On the Rancher UI, click Import Existing and follow the instructions, providing the kubeconfig content.
 Tailscale
 Installed on: Mini PC, worker1, [others]
 
@@ -96,6 +107,4 @@ WireGuard VPN
 RBAC policies
 
 Network policies in K3s
-
-text
 
