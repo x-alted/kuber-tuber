@@ -296,3 +296,53 @@
       - Reset all devices and check the ip of the mini pc, and the 3 workers; make sure the have the appropriate ip addresses
       - From mini pc, ping the gateway (10.0.10.1) and the 3 workers
       - From each of the workers, ping the gateway (10.0.20.1) and the mini pc
+     
+##LORA  
+**Accomplishments: 
+	- LoRa environment setup on worker1 (192.168.2.208): 
+	- Installed required packages (python3-pip, python3-venv, python3-rpi.gpio, python3-spidev, git). 
+	- Created Python virtual environment (lora-env) and installed adafruit-circuitpython-rfm9x. 
+	- Cloned Adafruit LoRa example repository and accessed example scripts. 
+	- SPI and GPIO configuration completed: 
+	- SPI enabled through raspi-config and verified with /dev/spidev0.0 and /dev/spidev0.1. 
+	- SPI functionality confirmed using Python test. 
+	- RESET pin (GPIO25) verified working through digitalio test. 
+ 
+
+**LoRa script configuration: 
+	- Edited rfm9x_simpletest.py to set correct pins (CE0/CE1 and D25). 
+	- Confirmed radio frequency set to 915.0 MHz for North America. 
+	- Tested multiple example scripts including simpletest, transmit, and node scripts. 
+ 
+
+**MultiPi setup clarified: 
+	- worker1 designated as the only LoRa node (HAT attached). 
+	- worker2 (192.168.2.207) and worker3 (192.168.2.202) configured as network-only nodes. 
+	- Installed basic tools on worker2 and worker3 for logging and SSH communication. 
+ 
+
+**Basic logging setup: 
+	- Created ~/lora_data/log.txt on worker2 and worker3. 
+	- Tested writing messages to log file to simulate incoming data. 
+ 
+
+**Decisions: 
+	- worker1 will remain the dedicated LoRa gateway for the system. 
+	- worker2 and worker3 will not run LoRa scripts and will instead receive data over the network. 
+	- All LoRa communication will originate from worker1 and be forwarded to other nodes. 
+	- Frequency standardised to 915 MHz for all LoRa operations. 
+ 
+
+**Next Steps: 
+	- Resolve LoRa HAT detection issue on worker1 (rfm9x not detected). 
+	- Confirm correct chip select pin (CE0 vs CE1) for the HAT. 
+	- Verify physical connection and seating of the LoRa HAT. 
+	- Achieve successful send/receive test using rfm9x scripts. 
+	- Forward real LoRa messages from worker1 to worker2 and worker3 log files. 
+	- Begin integration of LoRa data into overall system workflow. 
+ 
+
+**Issues: 
+	- LoRa HAT not detected consistently; error “Failed to find rfm9x with expected version”. 
+	- Possible causes include incorrect CS pin configuration or hardware connection issues. 
+ 
