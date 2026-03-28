@@ -278,3 +278,21 @@
   - Prepare for Week 5 resilience testing (simulate Pi failure, pod rescheduling).
 - **Issues:**
   - Rancher bootstrap password not honoured; worked around by retrieving from Kubernetes secret. (Resolved)
+
+
+### Week of March 27, 2026
+- **Accomplishments:**
+  - **Setting up a Pi Router:**
+ 	- Setting the static ip interface to 10.0.10.1/24 on for vlan 10, and 10.0.20.1/24 for vlan 20
+    - Setting up a dhcp server using dnsmasq
+    - The Vlans created are vlan 10 on eth0.10 for the mini pc and ubuntu vm and vlan 20 on eth0.20 for worker1, worker2, and worker3
+    - Enabled port forwarding
+    - Allow forwarding between vlans using iptables
+  - **Next Steps:**
+    - **Configure managed switch:**
+      - The port for the pi router must be a trunk (tagged vlan 10 & tagged vlan 20)
+      - The port for the mini pc must be access vlan 10 and ignore vlan 20
+      - The ports with the worker pis mus be access vlan 20 and ignore vlan 10
+      - Reset all devices and check the ip of the mini pc, and the 3 workers, make sure the have the appropriate ip addresses
+      - From mini pc, ping the gateway (10.0.10.1) and the 3 workers
+      - From each of the workers, ping the gateway (10.0.20.1) and the mini pc
