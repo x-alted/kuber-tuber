@@ -281,6 +281,7 @@
 
 
 ### Week of March 27, 2026
+
 ##**Networking**
 - **Accomplishments:**
   - **Setting up a Pi Router:**
