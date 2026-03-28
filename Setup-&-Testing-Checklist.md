@@ -290,6 +290,7 @@
     - The Vlans created are vlan 10 on eth0.10 for the mini pc and ubuntu vm and vlan 20 on eth0.20 for worker1, worker2, and worker3
     - Enabled port forwarding
     - Allow forwarding between vlans using iptables
+  - Pre-Hardening Network Topology diagram created. 
   - **Next Steps:**
     - **Configure managed switch:**
       - The port for the pi router must be a trunk (tagged vlan 10 & tagged vlan 20)
@@ -309,7 +310,6 @@
   - SPI enabled through raspi-config and verified with /dev/spidev0.0 and /dev/spidev0.1. 
   - SPI functionality confirmed using Python test. 
   - RESET pin (GPIO25) verified working through digitalio test.
-  - Pre-Hardening Network Topology diagram created.
   **LoRa script configuration: 
 	- Edited rfm9x_simpletest.py to set correct pins (CE0/CE1 and D25). 
 	- Confirmed radio frequency set to 915.0 MHz for North America. 
