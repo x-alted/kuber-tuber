@@ -282,7 +282,7 @@
 
 ### Week of March 27, 2026
 
-##**Networking**
+## **Networking**
 - **Accomplishments:**
   - **Setting up a Pi Router:**
  	- Setting the static ip interface to 10.0.10.1/24 on for vlan 10, and 10.0.20.1/24 for vlan 20
@@ -298,7 +298,7 @@
       - Reset all devices and check the ip of the mini pc, and the 3 workers; make sure the have the appropriate ip addresses
       - From mini pc, ping the gateway (10.0.10.1) and the 3 workers
       - From each of the workers, ping the gateway (10.0.20.1) and the mini pc 
-##**LORA**  
+## **LORA**  
 - **Accomplishments**: 
   - LoRa environment setup on worker1 (192.168.2.208):
   - Installed required packages (python3-pip, python3-venv, python3-rpi.gpio, python3-spidev, git). 
