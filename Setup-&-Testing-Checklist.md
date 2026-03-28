@@ -306,7 +306,8 @@
   - SPI and GPIO configuration completed: 
   - SPI enabled through raspi-config and verified with /dev/spidev0.0 and /dev/spidev0.1. 
   - SPI functionality confirmed using Python test. 
-  - RESET pin (GPIO25) verified working through digitalio test. 
+  - RESET pin (GPIO25) verified working through digitalio test.
+  - Pre-Hardening Network Topology diagram created.
   **LoRa script configuration: 
 	- Edited rfm9x_simpletest.py to set correct pins (CE0/CE1 and D25). 
 	- Confirmed radio frequency set to 915.0 MHz for North America. 
