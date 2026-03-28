@@ -293,6 +293,6 @@
       - The port for the pi router must be a trunk (tagged vlan 10 & tagged vlan 20)
       - The port for the mini pc must be access vlan 10 and ignore vlan 20
       - The ports with the worker pis mus be access vlan 20 and ignore vlan 10
-      - Reset all devices and check the ip of the mini pc, and the 3 workers, make sure the have the appropriate ip addresses
+      - Reset all devices and check the ip of the mini pc, and the 3 workers; make sure the have the appropriate ip addresses
       - From mini pc, ping the gateway (10.0.10.1) and the 3 workers
       - From each of the workers, ping the gateway (10.0.20.1) and the mini pc
