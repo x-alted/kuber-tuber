@@ -298,6 +298,7 @@
       - Reset all devices and check the ip of the mini pc, and the 3 workers; make sure the have the appropriate ip addresses
       - From mini pc, ping the gateway (10.0.10.1) and the 3 workers
       - From each of the workers, ping the gateway (10.0.20.1) and the mini pc 
+
 ## **LORA**  
 - **Accomplishments**: 
   - LoRa environment setup on worker1 (192.168.2.208):
