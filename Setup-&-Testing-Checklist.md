@@ -365,7 +365,7 @@ Port 5: 20
 ```
 - Go back to VLAN Membership and change vlan 1 to "U x x x x".
 - Ssh into Pi with username "router" and password "workers".
-- Install vlan using "sudo apt install vlan and run the following commands:
+- Install vlan using "sudo apt install vlan" and run the following commands:
 ```
 sudo modprobe 8021q
 echo "8021q" | sudo tee -a /etc/modules
