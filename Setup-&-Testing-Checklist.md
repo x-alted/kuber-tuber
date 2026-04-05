@@ -345,7 +345,7 @@
 - Access the web interface by typing the Pi's ip into web browser.
 - Login with username "admin" password "secret".
 - Change login to username "67W9umS315n90" password "100S158Ur3u097".
-- Disable hotspot, since it's not bwing used.
+- Disable hotspot, since it's not being used.
 - Go to the managed switch web interface.
 - Change the password to "78Su0t5H45t16".
 - Go to VLAN > 802.1Q > Advanced and enable Advanced 802.1Q VLAN.
@@ -381,7 +381,7 @@ sudo ip addr add 192.168.20.1/24 dev eth0.20
 sudo ip link set eth0.10 up
 sudo ip link set eth0.20 up
 ```
-- Create the parent interface definition by creating the file "/etc/system/network/10-eth0.network" and add:
+- Create the parent interface definition by creating the file "/etc/systemd/network/10-eth0.network" and add:
 ```
 [Match]
 Name=eth0
@@ -390,7 +390,7 @@ Name=eth0
 VLAN=eth0.10
 VLAN=eth0.20
 ```
-- Create vlan 10 interface by creating the file "/etc/system/network/20-vlan10.netdev" and add:
+- Create vlan 10 interface by creating the file "/etc/systemd/network/20-vlan10.netdev" and add:
 ```
 [NetDev]
 Name=eth0.10
@@ -399,7 +399,7 @@ Kind=vlan
 [VLAN]
 Id=10
 ```
-- Create file "/etc/system/system/network/21-vlan10.network" and add:
+- Create file "/etc/systemd/network/21-vlan10.network" and add:
 ```
 [Match]
 Name=eth0.10
@@ -407,7 +407,7 @@ Name=eth0.10
 [Network]
 Address=10.0.10.1/24
 ```
-- Create vlan 20 interface by creating the file "/etc/system/network/30-vlan20.netdev" and add:
+- Create vlan 20 interface by creating the file "/etc/systemd/network/30-vlan20.netdev" and add:
 ```
 [NetDev]
 Name=eth0.20
@@ -416,7 +416,7 @@ Kind=vlan
 [VLAN]
 Id=20
 ```
-- Create file "/etc/system/system/network/31-vlan20.network" and add:
+- Create file "/etc/systemd/network/31-vlan20.network" and add:
 ```
 [Match]
 Name=eth0.20
