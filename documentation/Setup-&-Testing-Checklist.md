@@ -646,6 +646,7 @@ sudo netfilter-persistent save
 - Reset the Pis and do a network scan with the ip range 10.0.10.0/24 and 10.0.20.0/24 from the mini pc. You should see all the Pis, vlan gateways and the switch.
 - Ping google.com to verify you have internet connection.
 - Remove the ethernet providing internet access from the Pi router and run an nmap scan again on the mini pc to verify that nothing changed.
+- 
 ### Week of April 6, 2026
 - **Accomplishments:**
   - K3s cluster completely rebuilt with new IPs:
@@ -666,6 +667,7 @@ sudo netfilter-persistent save
   - Bridge script (`lora_bridge.py`) designed and commented.
   - Receiver service (Flask) YAML prepared.
   - All documentation updated (System Architecture, Threat Model, Risk Assessment, Quick Start, BOM, Cardputer Manual, API).
+   - **Architecture Change:** During this week, the team decided to remove the Ubuntu VM and the unmanaged switch from the design. Rancher now runs on the Mini PC master node, and all three workers connect directly to the managed switch. This simplifies the network and reduces hardware overhead.
 - **Remaining Tasks:**
   - Flash Cardputer with CFW.
   - Deploy receiver service to K3s.
