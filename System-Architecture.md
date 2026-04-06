@@ -2,7 +2,7 @@
 
 **Version:** 1.0  
 **Date:** April 6, 2026  
-**Authors:** Alex (Documentation Lead), Anthony (Networking), Nathan (Kubernetes), Nick (LoRa)
+**Authors:** Alex, Anthony, Nathan, Nick
 
 ---
 
