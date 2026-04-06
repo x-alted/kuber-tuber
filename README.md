@@ -186,12 +186,12 @@ For detailed hardening steps, see [Security/Hardening-Tasks.md](Security/Hardeni
 
 | Test Type                | Status | Notes |
 |--------------------------|--------|-------|
-| Basic connectivity (ping) | ✅ Pass | All nodes reachable within VLANs. |
-| Inter‑VLAN routing       | ✅ Pass | Router forwards traffic as per firewall rules. |
-| LoRa send/receive (unencrypted) | ✅ Pass | Basic communication between Cardputer and `worker1`. |
-| LoRa encrypted message   | ✅ Pass | AES‑256 decryption works; key from Kubernetes secret. |
-| Node failure (worker)    | ✅ Pass | Pods reschedule to another worker within ~30s. |
-| Rancher availability     | ✅ Pass | Dashboard accessible on master node after cluster rebuild. |
+| Basic connectivity (ping) | Pass | All nodes reachable within VLANs. |
+| Inter‑VLAN routing       | Pass | Router forwards traffic as per firewall rules. |
+| LoRa send/receive (unencrypted) | Pass | Basic communication between Cardputer and `worker1`. |
+| LoRa encrypted message   | Pass | AES‑256 decryption works; key from Kubernetes secret. |
+| Node failure (worker)    | Pass | Pods reschedule to another worker within ~30s. |
+| Rancher availability     | Pass | Dashboard accessible on master node after cluster rebuild. |
 
 Full test matrix and failure scenario results are in [Test-Results.md](Test-Results.md).
 
