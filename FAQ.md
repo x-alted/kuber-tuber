@@ -1,5 +1,40 @@
 # Frequently Asked Questions
 
+## For Everyone (Basic Questions)
+
+### What is Kuber-Tuber?
+
+Kuber-Tuber is a portable, encrypted communication hub that works without internet or cellular service. It combines a small Kubernetes cluster (a group of connected computers) with LoRa radio technology. Field users can send encrypted text messages to a central logging and management dashboard. The system is self-contained and can be deployed in disaster zones, remote events, or industrial sites where normal networks are unavailable.
+
+### How does it work without internet or cellular?
+
+LoRa is a long-range radio technology that does not require any existing infrastructure. The field device (Cardputer) transmits encrypted messages directly to a LoRa receiver attached to one of the cluster nodes. The entire path from the field device to the central logs stays within the physical hardware you set up. No internet, cellular, or satellite connection is used at any point.
+
+### What can I do with it?
+
+- Send encrypted text messages from a handheld device to a central hub.
+- View all messages in a central log with timestamps.
+- Monitor the health of the cluster through a web dashboard (Rancher).
+- Automatically recover from a worker node failure (Kubernetes reschedules workloads).
+
+### Who would use this?
+
+- Disaster response teams when cell towers are down.
+- Festival or sports event security when cellular networks are congested.
+- Remote construction sites or farms with no existing network.
+- Rural healthcare clinics needing offline patient data logging.
+- Refrigerated warehouses as a backup monitoring system for temperature sensors.
+
+### How much does it cost?
+
+Approximate total: $450-$550 USD depending on sources. The Cardputer field node costs about $45 ($30 for the device + $15 for the LoRa module). The Mini PC is the most expensive component. You can reduce costs by using cheaper single-board computers or reusing existing hardware. Full details in [Hardware BOM](Documentation/Hardware-BOM.md).
+
+### How much power does the hub consume?
+
+Typical power draw is between 20 and 35 watts. The MeLE Quieter 4C Mini PC uses 6-10 watts. Each Raspberry Pi 4 uses 3-8 watts. The NETGEAR GS305E switch uses 2-4.5 watts. The LoRa HAT uses negligible power. The system is designed for AC outlets; battery or solar operation was not implemented but is possible as future work.
+
+---
+
 ## Basic Concepts
 
 ### What is LoRa and why is it used in this project?
@@ -44,14 +79,6 @@ The current network topology (see [Network Topology](Networking/Network-Topology
 - One Waveshare SX1262 LoRa HAT attached to `worker1`.
 - One Cardputer ADV field node with an attached LoRa module.
 
-### How much power does the hub consume?
-
-Power consumption estimates are based on manufacturer specifications and independent testing.
-
-The MeLE Quieter 4C Mini PC uses an Intel N100 processor with a thermal design power (TDP) of 6 watts. Actual power draw under load is typically between 6 and 10 watts. The three Raspberry Pi 4 workers consume approximately 2.7 watts each when idle and up to 8 watts each under load. The NETGEAR GS305E managed switch consumes approximately 2 watts at idle and up to 4.45 watts maximum. The Waveshare SX1262 LoRa HAT draws approximately 5.3mA when receiving (0.017 watts) and 107mA when transmitting (0.35 watts) at 22dBm.
-
-Total typical power draw for the complete hub is between 20 and 35 watts, depending on network activity and CPU load. The system is designed to run from AC outlets. Battery or solar operation was not implemented but is a possible future extension.
-
 ### Why is there a dedicated Raspberry Pi router instead of using the switch?
 
 The NETGEAR GS305E is a Layer 2 switch. It can tag and separate VLAN traffic but cannot route between VLANs or apply firewall rules. A separate Layer 3 device is required. The Raspberry Pi router runs `systemd-networkd` to create VLAN tagged interfaces (`eth0.10`, `eth0.20`) and iptables to filter inter-VLAN traffic. This gives fine control: the control plane (`10.0.10.0/24`) can SSH to workers, but workers cannot initiate connections to the control plane.
@@ -86,7 +113,7 @@ Yes. The Python receiver scripts use the Adafruit RFM9x library, which supports 
 
 ### How do I access the Rancher dashboard?
 
-Open a browser to `https://10.0.10.214:30443`. Accept the self-signed certificate warning. Login with the username `admin`. The initial password can be retrieved from the bootstrap secret using the command documented in [Service Configuration](Service-Configuration.md). After first login, change the password.
+Open a browser to `https://10.0.10.201:30443`. Accept the self-signed certificate warning. Login with the username `admin`. The initial password can be retrieved from the bootstrap secret using the command documented in [Service Configuration](Service-Configuration.md). After first login, change the password.
 
 ### How do I check the status of all nodes from the command line?
 
@@ -158,7 +185,7 @@ Run `ls /dev/spidev*`. You should see `spidev0.0` and `spidev0.1`. If not, SPI i
 
 ### The Rancher UI shows "cluster unreachable" after import.
 
-Ensure the machine running Rancher can reach the master node on port 6443. Check that the kubeconfig file has the correct server IP (`https://10.0.10.201:6443`). Also verify that no firewall is blocking the connection. If the cluster was imported but later the IP changed, you may need to re-import.
+Ensure the machine running Rancher (the master node itself) can reach the K3s API on port 6443. Check that the kubeconfig file has the correct server IP (`https://10.0.10.201:6443`). Also verify that no firewall is blocking the connection. If the cluster was imported but later the IP changed, you may need to re-import.
 
 ### A worker node shows NotReady after a reboot.
 
@@ -173,20 +200,21 @@ On the master node: `sudo /usr/local/bin/k3s-uninstall.sh`. On each worker: `sud
 ### What is the purpose of each file in the repository?
 
 A quick reference:
+## Project Documentation
 
-- `README.md`: Overview, architecture, and quick start.
-- `Quick-Start-Guide.md`: Step-by-step order to set up the system.
-- `FAQ.md`: This document.
-- `Service-Configuration.md`: Detailed commands for K3s, Rancher, and services.
-- `Issues-Log.md`: Record of problems encountered and resolutions.
-- `Test-Results.md`: Matrix of tests performed and their outcomes.
-- `Network-Topology.md`: IP assignments, VLANs, and switch configuration.
-- `Hardware-BOM.md`: Bill of materials with part numbers and costs.
-- `Use-Cases.md`: Real-world scenarios where the system provides value.
-- `checklists/`: Task lists for setup, hardening, Kubernetes, LoRa, and networking.
-- `LoRa/`: Python scripts, Cardputer firmware, and LoRa-specific documentation.
-- `Security/`: Risk assessment, threat model, and hardening tasks.
+### What is the purpose of each file in the repository?
 
-### Where can I see all the issues that were fixed?
+A quick reference:
 
-Read [Issues Log](Issues-Log.md). It includes the date, description, affected component, resolution, and status for every significant problem. Examples include the K3s IP range change, Rancher bootstrap password retrieval, Tailscale connectivity drops, and LoRa encrypted message not appearing.
+- [`README.md`](README.md): Overview, architecture, and quick start.
+- [`Quick-Start-Guide.md`](Quick-Start-Guide.md): Step-by-step order to set up the system.
+- [`FAQ.md`](FAQ.md): This document.
+- [`Service-Configuration.md`](Service-Configuration.md): Detailed commands for K3s, Rancher, and services.
+- [`Issues-Log.md`](Issues-Log.md): Record of problems encountered and resolutions.
+- [`Test-Results.md`](Test-Results.md): Matrix of tests performed and their outcomes.
+- [`Networking/Network-Topology.md`](Networking/Network-Topology.md): IP assignments, VLANs, and switch configuration.
+- [`Documentation/Hardware-BOM.md`](Documentation/Hardware-BOM.md): Bill of materials with part numbers and costs.
+- [`Documentation/Use-Cases.md`](Documentation/Use-Cases.md): Real-world scenarios where the system provides value.
+- [`checklists/`](checklists/): Task lists for setup, hardening, Kubernetes, LoRa, and networking.
+- [`LoRa/`](LoRa/): Python scripts, Cardputer firmware, and LoRa-specific documentation.
+- [`Security/`](Security/): Risk assessment, threat model, and hardening tasks.
