@@ -1,151 +1,192 @@
-# Kuber‑Tuber – Frequently Asked Questions
+# Frequently Asked Questions
 
----
+## Basic Concepts
 
-## 1. Why three worker nodes? Why not just the Mini PC or just one worker?
+### What is LoRa and why is it used in this project?
 
-We used three Raspberry Pi workers (plus the Mini PC as master) for three practical reasons:
+LoRa (Long Range) is a wireless communication technology that transmits small amounts of data over long distances using very little power. It does not require cellular service, Wi-Fi, or internet. In this project, LoRa allows field devices like the Cardputer to send encrypted messages to the hub from up to several kilometers away in open terrain. This makes the system useful in disaster zones, remote industrial sites, or crowded event venues where traditional networks are unavailable or overloaded.
 
-- **Demonstrate Kubernetes self‑healing** – With three workers, we could power off one (`worker2`) and show a test pod reschedule to another worker (`worker3`). With only one worker, there is no failover to demonstrate. That’s a core feature we wanted to prove.
+### What is Kubernetes and why does this project need it?
 
-- **Isolate the LoRa gateway** – The LoRa HAT is attached to `worker1`. LoRa processing (SPI, encryption/decryption) can be resource‑intensive. Putting it on a dedicated worker means rebooting that node for driver tests or updates doesn’t affect other workloads.
+Kubernetes is a system that automatically manages containerized applications. This project uses K3s, a lightweight version of Kubernetes. Kubernetes provides two key benefits:
 
-- **We had the hardware** – The team already owned three Raspberry Pi 4s. Using all of them made sense to build a realistic small‑scale cluster.
+- Self healing: If a worker node (Raspberry Pi) loses power or fails, Kubernetes reschedules the running applications to another healthy worker automatically.
+- Centralized management: The Rancher dashboard gives a single view of all nodes, logs, and workloads.
 
-> Could we have run everything on the Mini PC alone? Technically yes, but then we wouldn’t have a distributed system, and the “pod rescheduling” demo would be impossible. The project’s goal was to learn Kubernetes, so multiple workers were necessary.
+Without Kubernetes, you would need to manually restart services after a hardware failure and monitor each node separately.
 
----
+### What is the difference between K3s and full Kubernetes?
 
-## 2. What did you actually test and verify?
+K3s is a certified Kubernetes distribution packaged as a single binary under 100 MB. It is designed for edge computing and low-resource devices like Raspberry Pis. Full Kubernetes would be too heavy for the Pi 4's 4 GB RAM. K3s includes embedded etcd or SQLite, simplifies installation, and removes non-essential features. The commands (`kubectl`, `helm`) and most APIs are identical to standard Kubernetes.
 
-All tests listed below were performed and passed. See `Test-Results.md` for details.
+### What is the Cardputer ADV and why was it chosen?
 
-| Test | 
-|------|
-| Ping connectivity between all nodes |
-| Inter‑VLAN routing (control plane → workers) |
-| Inter‑VLAN blocking (workers → control plane) |
-| LoRa unencrypted send/receive (Cardputer ↔ worker1) |
-| LoRa AES‑256 encrypted message with key from Kubernetes secret |
-| Rancher UI accessible at `https://192.168.2.214:30443` |
-| Pod rescheduling after worker power‑off |
-| Switch reboot – all nodes recover connectivity |
-| Mini PC reboot – master returns with same IP, cluster recovers |
+The Cardputer ADV is a portable device with a built-in keyboard, screen, and ESP32-S3 microcontroller. It requires a separate LoRa module (approximately $15 USD) attached to the back. The total cost is approximately $45 USD per field node. It was chosen because it is self-contained, has a keyboard for typing messages, and is easy to program using PlatformIO. Alternative LoRa transmitters (such as a Raspberry Pi with a LoRa HAT) are larger and less portable.
 
-**We did not test long‑range LoRa (beyond a room) or battery/solar operation** – those were outside our project scope. Our focus was on encryption, cluster integration, and network security.
+### How do I program the Cardputer?
 
----
+The Cardputer firmware is written in C++ and compiled using PlatformIO. The source code is in [LoRa/KuberTuber-Cardputer.ino](LoRa/KuberTuber-Cardputer.ino). PlatformIO handles dependency management and flashing over USB. The firmware includes the LoRa driver, AES-256 encryption, and a simple text input interface.
 
-## 3. Why did you rebuild the K3s cluster halfway through?
+### What does "encrypted LoRa" mean in practice?
 
-We started with a flat `192.168.2.x` network and later decided to add VLANs for security. K3s does **not** easily allow changing node IPs after initialisation. Rather than hack around it, we:
+LoRa radio transmissions are not encrypted by default. Anyone with a software-defined radio can capture and read the messages. This project adds AES-256 encryption at the application layer. The sender (Cardputer) encrypts the message before transmitting. The receiver on `worker1` decrypts it using a pre-shared key stored as a Kubernetes secret. An eavesdropper sees only ciphertext.
 
-- Uninstalled K3s on all nodes
-- Assigned new static IPs in the VLAN subnets (`10.0.10.x` for control plane, `10.0.20.x` for workers)
-- Re‑installed K3s on the master and re‑joined all workers
+## Hardware and Network
 
-This taught us a valuable lesson: **plan IP ranges before installing Kubernetes**. Instructors saw this as real troubleshooting, not a failure.
+### What hardware is currently in the system?
 
----
+The current network topology (see [Network Topology](Networking/Network-Topology.md)) consists of:
 
-## 4. How did you fix the Rancher bootstrap password issue?
+- One MeLE Quieter 4C Mini PC running the K3s master node at `10.0.10.201`. The Mini PC has an Intel N100 processor, 16GB RAM, and 512GB storage.
+- Three Raspberry Pi 4 workers at `10.0.20.208`, `10.0.20.207`, `10.0.20.202`.
+- One Raspberry Pi 4 configured as a router with VLAN trunking.
+- One NETGEAR GS305E managed switch.
+- One Waveshare SX1262 LoRa HAT attached to `worker1`.
+- One Cardputer ADV field node with an attached LoRa module.
 
-We set `bootstrapPassword=admin` during Helm install, but the UI rejected it. Instead of reinstalling, we retrieved the actual password from the Kubernetes secret:
+### How much power does the hub consume?
 
-```bash
-kubectl get secret -n cattle-system bootstrap-secret -o go-template='{{.data.bootstrapPassword|base64decode}}'
+Power consumption estimates are based on manufacturer specifications and independent testing.
+
+The MeLE Quieter 4C Mini PC uses an Intel N100 processor with a thermal design power (TDP) of 6 watts. Actual power draw under load is typically between 6 and 10 watts. The three Raspberry Pi 4 workers consume approximately 2.7 watts each when idle and up to 8 watts each under load. The NETGEAR GS305E managed switch consumes approximately 2 watts at idle and up to 4.45 watts maximum. The Waveshare SX1262 LoRa HAT draws approximately 5.3mA when receiving (0.017 watts) and 107mA when transmitting (0.35 watts) at 22dBm.
+
+Total typical power draw for the complete hub is between 20 and 35 watts, depending on network activity and CPU load. The system is designed to run from AC outlets. Battery or solar operation was not implemented but is a possible future extension.
+
+### Why is there a dedicated Raspberry Pi router instead of using the switch?
+
+The NETGEAR GS305E is a Layer 2 switch. It can tag and separate VLAN traffic but cannot route between VLANs or apply firewall rules. A separate Layer 3 device is required. The Raspberry Pi router runs `systemd-networkd` to create VLAN tagged interfaces (`eth0.10`, `eth0.20`) and iptables to filter inter-VLAN traffic. This gives fine control: the control plane (`10.0.10.0/24`) can SSH to workers, but workers cannot initiate connections to the control plane.
+
+### How are the three VLANs configured?
+
+- VLAN 1 (management): `10.0.0.0/24`. Used for the switch management IP and the router's management interface.
+- VLAN 10 (control plane): `10.0.10.0/24`. Contains the Mini PC master.
+- VLAN 20 (workers): `10.0.20.0/24`. Contains the three Raspberry Pi workers, including the LoRa gateway.
+
+The managed switch port connected to the router is a trunk (tagged VLANs 10 and 20). Ports for the Mini PC and each worker are access ports assigned to the respective VLAN. Complete details are in [Network Topology](Networking/Network-Topology.md).
+
+## LoRa and Encryption
+
+### How do I test that the LoRa HAT is working without the full cluster?
+
+Run the [LoRA Test.py](LoRa/LoRA-Test.py) script on `worker1`. It initialises the SPI bus and attempts to detect the SX1262 radio. If successful, it prints a confirmation. For send and receive tests, follow the [LoRa Tasks](LoRa/LoRa-Tasks.md) checklist.
+
+### Where is the AES encryption key stored and how is it accessed?
+
+The key is a 32-byte random string stored as a Kubernetes secret named `lora-aes-key` in the cluster. The receiver service on `worker1` mounts this secret as a volume or environment variable. The Cardputer firmware has the same key compiled in. The key is never transmitted over LoRa or any network.
+
+### What happens if the encryption key is changed?
+
+If you change the key in the Kubernetes secret, the receiver service must be restarted to load the new key. All Cardputer field devices must be re-flashed with the matching key. Messages encrypted with the old key will fail decryption and be rejected. Key rotation requires physical access to field devices or a secure over-the-air update mechanism, which is not implemented.
+
+### Can I use a different LoRa module or frequency?
+
+Yes. The Python receiver scripts use the Adafruit RFM9x library, which supports SX1276 and SX1262 based modules. Change the `RADIO_FREQ_MHZ` variable to your regional frequency (868 MHz for Europe, 915 MHz for North America, 433 MHz for some other regions). The Cardputer firmware must use the same frequency. You are responsible for complying with local radio regulations.
+
+## Kubernetes and Rancher
+
+### How do I access the Rancher dashboard?
+
+Open a browser to `https://10.0.10.214:30443`. Accept the self-signed certificate warning. Login with the username `admin`. The initial password can be retrieved from the bootstrap secret using the command documented in [Service Configuration](Service-Configuration.md). After first login, change the password.
+
+### How do I check the status of all nodes from the command line?
+
+From any machine with `kubectl` and the correct kubeconfig, run `kubectl get nodes`. The output shows each node's status (Ready or NotReady), roles, and age. For more detail, use `kubectl describe node <node-name>`.
+
+### What happens when I power off a worker node?
+
+Kubernetes detects the node as NotReady after approximately 40 seconds. Any pods that were running on that node are rescheduled to other healthy workers. The cluster remains operational. When the node is powered back on, it rejoins automatically. This was tested by draining and powering off `worker2`; an nginx test pod rescheduled to `worker3`.
+
+### Why is there only one master node?
+
+The project scope did not include high availability for the control plane. A single master node is a single point of failure for cluster management. However, existing pods on worker nodes continue to run even if the master is down. For a production deployment, you would run K3s in HA mode with three master nodes and an external database. This was documented as future work.
+
+## Security
+
+### How are SSH keys managed across all nodes?
+
+Each team member generated an Ed25519 key pair. The public keys were appended to `~/.ssh/authorized_keys` on every node (Mini PC, three workers, router Pi). Password authentication was then disabled in `/etc/ssh/sshd_config`. The [Hardening Tasks](Security/Hardening-Tasks.md) checklist documents the exact steps.
+
+### What firewall rules are applied on the router Pi?
+
+The router Pi uses iptables with a default DROP policy on the FORWARD chain. Rules allow:
+
+- Established and related connections (so that return traffic is permitted).
+- SSH from the control plane (`10.0.10.0/24`) to workers (`10.0.20.0/24`) on port 22.
+- K3s API traffic from workers to the master on port 6443.
+
+All other inter-VLAN traffic is blocked. Workers cannot initiate connections to the control plane.
+
+### Are the LoRa messages logged and auditable?
+
+Yes. The receiver service on `worker1` writes each decrypted message to the system log (`journalctl`) and to the Kubernetes pod logs. The logs include a timestamp and the plaintext message. You can view them with `journalctl -u lora-gateway` or `kubectl logs deployment/lora-receiver`. For long-term retention, you would need to configure log rotation or forward logs to a persistent volume.
+
+## Using the Project
+
+### How do I send a message from the Cardputer?
+
+Power on the Cardputer. The firmware presents a simple text input screen. Type your message using the keyboard. Press the Send button. The device encrypts the message and transmits it over LoRa at 915 MHz. No pairing or network configuration is required. The screen shows a confirmation when transmission completes.
+
+### How do I view received messages on the hub?
+
+There are three methods:
+
+- On `worker1`: `journalctl -u lora-gateway -f` to follow the log.
+- Using `kubectl`: `kubectl logs -f deployment/lora-receiver` (if running as a deployment).
+- In the Rancher UI: navigate to the receiver pod and view its logs.
+
+A web dashboard for messages was not implemented but could be added.
+
+### How do I add a new Raspberry Pi as an additional worker?
+
+Flash Raspberry Pi OS Lite to an SD card. Set a static IP address in the worker VLAN (`10.0.20.0/24`). Enable SSH. On the master node, retrieve the K3s token from `/var/lib/rancher/k3s/server/node-token`. On the new Pi, run:
+
+```
+curl -sfL https://get.k3s.io | K3S_URL=https://10.0.10.201:6443 K3S_TOKEN=<token> sh -
 ```
 
-That’s a real‑world debugging skill. After login, we changed the password. The issue is documented in `Issues-Log.md`.
+The node will appear in `kubectl get nodes` within a minute. Then apply any necessary labels and security hardening.
 
----
+### Where do I find the complete list of configuration commands?
 
-## 5. What security measures are actually in place?
+All installation steps are in [Service Configuration](Service-Configuration.md). This includes K3s installation on the master, joining workers, installing Helm and cert-manager, deploying Rancher, and retrieving the bootstrap password. The document is kept up to date with the exact commands used.
 
-| Measure | Status |
-|---------|--------|
-| SSH key authentication (passwords disabled) |
-| UFW on each node (default deny incoming, allow SSH) |
-| iptables on router Pi (default DROP on FORWARD, explicit allow rules) |
-| VLAN isolation (workers cannot initiate connections to control plane) |
-| LoRa AES‑256 encryption (key stored as Kubernetes secret) |
-| Rancher HTTPS (self‑signed certificate) |
+## Troubleshooting
 
----
+### The LoRa HAT is not detected. What should I check?
 
-## 6. Can you explain the LoRa encryption flow step‑by‑step?
+Run `ls /dev/spidev*`. You should see `spidev0.0` and `spidev0.1`. If not, SPI is not enabled. Enable it with `raspi-config` or by adding `dtparam=spi=on` to `/boot/config.txt` and rebooting. Also verify the HAT is properly seated on the GPIO header. The [LoRa Tasks](LoRa/LoRa-Tasks.md) checklist has a full verification procedure.
 
-Yes. Here’s exactly what we built:
+### The Rancher UI shows "cluster unreachable" after import.
 
-1. **Pre‑shared key** – A 32‑byte AES‑256 key was generated and stored as a Kubernetes secret named `lora-aes-key`.
-2. **Cardputer firmware** – The key is embedded in the device. When the user types a message, the firmware encrypts it with AES‑256 CBC.
-3. **Transmission** – The encrypted payload is sent over LoRa at 915 MHz.
-4. **Reception on `worker1`** – The LoRa HAT receives the packet. A Python script (running as a Kubernetes deployment) reads from SPI.
-5. **Decryption** – The script fetches the key from the mounted secret and decrypts the payload.
-6. **Logging** – The plaintext message is written to a log, viewable via `kubectl logs` or Rancher UI.
+Ensure the machine running Rancher can reach the master node on port 6443. Check that the kubeconfig file has the correct server IP (`https://10.0.10.201:6443`). Also verify that no firewall is blocking the connection. If the cluster was imported but later the IP changed, you may need to re-import.
 
-We tested this end‑to‑end. An early issue (April 2: encrypted message not appearing) was fixed by ensuring the secret was correctly mounted and the script restarted.
+### A worker node shows NotReady after a reboot.
 
----
+Check that the node received its static IP address. Verify that the K3s service started: `sudo systemctl status k3s-agent`. Look for errors in the logs: `journalctl -u k3s-agent -f`. The most common cause is that the node cannot reach the master on port 6443. Test connectivity with `ping 10.0.10.201` and `telnet 10.0.10.201 6443`.
 
-## 7. Why did you use Tailscale? Is it part of the final system?
+### How do I completely reset the cluster and start over?
 
-Tailscale was used **only during development** – it allowed Nick to access `worker1` remotely from home to configure the LoRa HAT without port forwarding. It is **not** required for the final air‑gapped system. We documented it in `Issues-Log.md` for completeness, but you can remove Tailscale entirely for a production deployment.
+On the master node: `sudo /usr/local/bin/k3s-uninstall.sh`. On each worker: `sudo /usr/local/bin/k3s-agent-uninstall.sh`. Remove the K3s configuration directory (`/etc/rancher/k3s`) and any leftover containers. Then reinstall following the [Service Configuration](Service-Configuration.md) steps. This is the same procedure used when the cluster was rebuilt after the IP range change.
 
----
+## Project Documentation
 
-## 8. What real‑world problem does this solve?
+### What is the purpose of each file in the repository?
 
-Our `Use-Cases.md` describes two grounded scenarios:
+A quick reference:
 
-- **Temporary event venues (festivals, sports)** – Cellular networks often fail or become congested. Security, medical, and parking staff need encrypted, logged communication. Our hub works offline.
+- `README.md`: Overview, architecture, and quick start.
+- `Quick-Start-Guide.md`: Step-by-step order to set up the system.
+- `FAQ.md`: This document.
+- `Service-Configuration.md`: Detailed commands for K3s, Rancher, and services.
+- `Issues-Log.md`: Record of problems encountered and resolutions.
+- `Test-Results.md`: Matrix of tests performed and their outcomes.
+- `Network-Topology.md`: IP assignments, VLANs, and switch configuration.
+- `Hardware-BOM.md`: Bill of materials with part numbers and costs.
+- `Use-Cases.md`: Real-world scenarios where the system provides value.
+- `checklists/`: Task lists for setup, hardening, Kubernetes, LoRa, and networking.
+- `LoRa/`: Python scripts, Cardputer firmware, and LoRa-specific documentation.
+- `Security/`: Risk assessment, threat model, and hardening tasks.
 
-- **Refrigerated warehouses / convenience stores** – Many stores use LoRa temperature sensors. If the store’s internet fails, the cloud dashboard goes dark. Our hub runs as a local backup, logging sensor data and sending alerts to staff Cardputers if a fridge warms up.
+### Where can I see all the issues that were fixed?
 
-Both use cases require **no internet**, **encryption**, and **audit logging** – exactly what our project delivers.
-
----
-
-## 9. What was the hardest technical problem you solved?
-
-Two stand out from our `Issues-Log.md`:
-
-1. **VLAN trunk on a Raspberry Pi router** – Using `systemd-networkd` with VLAN‑tagged interfaces (`eth0.10`, `eth0.20`) was new to us. We had to learn how to create `.netdev` and `.network` files, enable IP forwarding, and write `iptables` rules.
-
-2. **K3s IP range change requiring full cluster rebuild** – As mentioned above, this was painful but educational. It forced us to plan network topology before installing orchestration tools.
-
-Both show genuine problem‑solving, not just following a tutorial.
-
----
-
-## 10. What would you add with more time?
-
-Given unlimited time, we would add:
-
-- A simple web dashboard to view LoRa messages (instead of `kubectl logs`)
-- Matrix/Dendrite integration for a chat interface
-- Battery/solar power for true portability
-- Kubernetes RBAC and network policies for deeper pod isolation
-
-But these are **enhancements**, not missing features. The core system works as designed.
-
----
-
-## 11. How much power does the hub consume?
-
-We did not formally measure power, but estimates from component specs suggest ~35‑50W total. A 100Ah 12V battery could run it for ~20 hours. We did **not** build a battery‑powered version – that remains future work.
-
----
-
-## 12. Where can I find all the documentation?
-
-All files are in the GitHub repository: `github.com/x-alted/kuber-tuber`
-
-Key documents:
-- `README.md` – overview and quick start
-- `Use-Cases.md` – detailed scenarios
-- `Network-Topology.md` – IP assignments and VLAN diagrams
-- `Service-Configuration.md` – installation steps for every component
-- `Test-Results.md` – test matrix
-- `Issues-Log.md` – troubleshooting history
-- `checklists/` – step‑by‑step setup guides
+Read [Issues Log](Issues-Log.md). It includes the date, description, affected component, resolution, and status for every significant problem. Examples include the K3s IP range change, Rancher bootstrap password retrieval, Tailscale connectivity drops, and LoRa encrypted message not appearing.
