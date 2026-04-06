@@ -125,8 +125,6 @@ A **Raspberry Pi router** routes between VLANs and enforces firewall rules (e.g.
 | LoRa module (e.g., Ra‑01S)      | Attached to Cardputer                   | 1        |
 | Power supplies                  | 5V/3A USB‑C for each Pi, Mini PC PSU    | (7 outlets total) |
 
-The Cardputer ADV costs approximately $30 USD. The LoRa module costs approximately $15 USD. Total field node cost is $45 USD.
-
 ---
 
 ## Getting Started
