@@ -1,4 +1,3 @@
-Here is a complete `README.md` for your project, based on the documentation and current status. You can copy this into your repository’s root.
 # Kuber‑Tuber
 
 **A portable, encrypted LoRa‑integrated Kubernetes cluster for off‑grid communications**  
