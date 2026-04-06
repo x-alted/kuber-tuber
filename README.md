@@ -1,7 +1,7 @@
 # Kuber‑Tuber
+(Cybersecurity Capstone Project)
 
 **A portable, encrypted LoRa‑integrated Kubernetes cluster for off‑grid communications**  
-*Cybersecurity Capstone Project*
 
 ![K3s](https://img.shields.io/badge/K3s-v1.34.5-blue)
 ![Rancher](https://img.shields.io/badge/Rancher-v2.9-blue)
