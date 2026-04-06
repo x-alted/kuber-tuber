@@ -1,7 +1,7 @@
 # Kuber‑Tuber
-(Cybersecurity Capstone Project)
+### Cybersecurity Capstone Project
 
-**A portable, encrypted LoRa‑integrated Kubernetes cluster for off‑grid communications**  
+**An encrypted LoRa‑integrated Kubernetes cluster for off‑grid, long-range alerts and communications.**
 
 ![K3s](https://img.shields.io/badge/K3s-v1.34.5-blue)
 ![Rancher](https://img.shields.io/badge/Rancher-v2.9-blue)
@@ -12,20 +12,20 @@
 
 ## Overview
 
-Kuber‑Tuber is a self‑contained communication hub that combines a lightweight Kubernetes cluster (K3s) with an encrypted LoRa mesh network. It is designed to provide resilient, offline messaging and data collection in environments where traditional networks are unavailable, unreliable, or insecure – such as disaster zones, remote industrial sites, or temporary event venues.
+Kuber‑Tuber is a self‑contained communication hub that combines a lightweight Kubernetes cluster (K3s) with an encrypted LoRa mesh network. It provides resilient, offline messaging and data collection where traditional networks are unavailable, unreliable, or insecure – such as disaster zones, remote industrial sites, or temporary event venues.
 
 The system consists of:
-- **5‑node K3s cluster** (1 master, 4 workers) running on a mix of Raspberry Pi 4 and a Mini PC.
+- **5‑node K3s cluster** (1 master, 4 workers) running on a mix of Raspberry Pi 4 and a MeLE Mini PC.
 - **VLAN‑segmented network** with a dedicated Raspberry Pi router for isolation and security.
 - **LoRa gateway** (Waveshare SX1262 HAT) attached to `worker1` for receiving encrypted messages.
-- **Cardputer ADV** field node that sends AES‑256 encrypted messages over LoRa.
-- **Rancher** web UI for cluster management and monitoring.
+- **Cardputer ADV** field node (with separate LoRa module) that sends AES‑256 encrypted messages.
+- **Rancher** web UI for cluster management and monitoring, running on the K3s cluster.
 
 **Key capabilities:**
 - Encrypted text messaging without internet or cellular.
-- Centralised logging, audit trail, and role‑based access.
+- Centralised logging and audit trail.
 - Self‑healing workloads (Kubernetes reschedules pods after node failure).
-- Deployable in any location with sufficient power (10 AC outlets).
+- Deployable wherever AC power is available (approx. 30W typical draw).
 
 ---
 
@@ -39,13 +39,29 @@ kuber-tuber/
 │   ├── kubernetes-configuration-tasks.md
 │   ├── lora-configuration-tasks.md
 │   └── networking-configuration-tasks.md
+├── Documentation/
+│   ├── Hardware-BOM.md
+│   └── Use-Cases.md
+├── LoRa/
+│   ├── KuberTuber-Cardputer.ino
+│   ├── decrypt_utils.py
+│   ├── LoRa-Bridge.py
+│   ├── receiver-service.py
+│   ├── test_decryption.py
+│   ├── LoRA-Test.py
+│   └── LoRa-Tasks.md
+├── Networking/
+│   ├── Network-Topology.md
+│   └── Networking-Tasks.md
+├── Security/
+│   ├── Risk-Assessment.md
+│   ├── Threat-Model.md
+│   └── Hardening-Tasks.md
 ├── Issues-Log.md
-├── LoRA-Test.py
-├── Network-Topology.md
-├── READMEold.md
 ├── Service-Configuration.md
-├── Use-Cases.md
 ├── Test-Results.md
+├── Quick-Start-Guide.md
+├── FAQ.md
 └── README.md (this file)
 ```
 
@@ -53,19 +69,16 @@ kuber-tuber/
 
 | File | Description |
 |------|-------------|
-| [`checklists/Setup-&-Testing-Checklist.md`](https://github.com/x-alted/kuber-tuber/blob/main/checklists/Setup-&-Testing-Checklist.md) | Hardware/OS validation checklist and weekly progress log. |
-| [`checklists/hardening+security-configuration-tasks.md`](https://github.com/x-alted/kuber-tuber/blob/main/checklists/hardening+security-configuration-tasks.md) | Security hardening tasks and verification steps. |
-| [`checklists/kubernetes-configuration-tasks.md`](https://github.com/x-alted/kuber-tuber/blob/main/checklists/kubernetes-configuration-tasks.md) | K3s and Rancher configuration checklist. |
-| [`checklists/lora-configuration-tasks.md`](https://github.com/x-alted/kuber-tuber/blob/main/checklists/lora-configuration-tasks.md) | LoRa HAT setup and testing tasks. |
-| [`checklists/networking-configuration-tasks.md`](https://github.com/x-alted/kuber-tuber/blob/main/checklists/networking-configuration-tasks.md) | VLAN, router, and switch configuration steps. |
-| [`Issues-Log.md`](https://github.com/x-alted/kuber-tuber/blob/main/Issues-Log.md) | Running log of problems encountered and resolutions. |
-| [`LoRA-Test.py`](https://github.com/x-alted/kuber-tuber/blob/main/LoRA-Test.py) | Python script for basic LoRa send/receive testing. |
-| [`Use-Cases.md`](https://github.com/x-alted/kuber-tuber/blob/main/Use-Cases.md) | Several realistic applications for our cluster. |
-| [`Network-Topology.md`](https://github.com/x-alted/kuber-tuber/blob/main/Network-Topology.md) | IP assignments, VLANs, Tailscale, and network diagrams. |
-| [`Service-Configuration.md`](https://github.com/x-alted/kuber-tuber/blob/main/Service-Configuration.md) | Installation steps for K3s, Rancher, LoRa bridge, etc. |
-| [`Test-Results.md`](https://github.com/x-alted/kuber-tuber/blob/main/Test-Results.md) | Connectivity matrix, failover tests, LoRa range results. |
-
-> **Note:** `READMEold.md` is an earlier version kept for reference.
+| [Quick-Start-Guide.md](Quick-Start-Guide.md) | Step‑by‑step order to set up the system. |
+| [Service-Configuration.md](Service-Configuration.md) | Detailed commands for K3s, Rancher, and services. |
+| [Issues-Log.md](Issues-Log.md) | Running log of problems encountered and resolutions. |
+| [Test-Results.md](Test-Results.md) | Connectivity matrix, failover tests, LoRa results. |
+| [FAQ.md](FAQ.md) | Frequently asked questions about the project. |
+| [Documentation/Use-Cases.md](Documentation/Use-Cases.md) | Realistic applications for the cluster. |
+| [Networking/Network-Topology.md](Networking/Network-Topology.md) | IP assignments, VLANs, and network diagrams. |
+| [checklists/](checklists/) | Task lists for setup, hardening, Kubernetes, LoRa, and networking. |
+| [LoRa/](LoRa/) | Python scripts, Cardputer firmware (PlatformIO), and LoRa documentation. |
+| [Security/](Security/) | Risk assessment, threat model, and hardening tasks. |
 
 ---
 
@@ -77,40 +90,42 @@ The network is split into three VLANs to improve security and manageability:
 
 | VLAN | Subnet        | Purpose                          | Devices |
 |------|---------------|----------------------------------|---------|
-| 1    | 10.0.0.0/24   | Management                       | Router Pi (mgmt interface), managed switch |
-| 10   | 10.0.10.0/24  | Control Plane                    | Mini PC (master), Ubuntu VM (Rancher) |
-| 20   | 10.0.20.0/24  | Workers & LoRa                   | worker1 (LoRa gateway), worker2, worker3, unmanaged switch |
+| 1    | 10.0.0.0/24   | Management                       | Router Pi (management interface), managed switch |
+| 10   | 10.0.10.0/24  | Control Plane                    | Mini PC master (K3s control plane + Rancher) |
+| 20   | 10.0.20.0/24  | Workers & LoRa                   | worker1 (LoRa gateway), worker2, worker3 |
 
 A **Raspberry Pi router** routes between VLANs and enforces firewall rules (e.g., workers cannot initiate connections to the control plane). The **NETGEAR GS305E managed switch** handles VLAN tagging and trunking.
 
-> For a full diagram, see [`Network-Topology.md`](https://github.com/x-alted/kuber-tuber/blob/main/Network-Topology.md).
+> For a full diagram, see [Networking/Network-Topology.md](Networking/Network-Topology.md).
 
 ### Software Stack
 
 | Component          | Technology                               |
 |--------------------|------------------------------------------|
 | Container orchestration | K3s (lightweight Kubernetes)         |
-| Cluster management | Rancher (Helm deployment)                |
+| Cluster management | Rancher (Helm deployment on K3s)         |
 | LoRa radio         | Waveshare SX1262 HAT + Python driver     |
-| Field node         | Cardputer ADV (ESP32‑S3, LoRa Cap 868/915) |
+| Field node         | Cardputer ADV + LoRa module (ESP32‑S3)   |
 | Encryption         | AES‑256 (pre‑shared key)                 |
-| Remote access      | Tailscale (optional, for team access)    |
-| Operating systems  | Debian 13 (Mini PC), Raspberry Pi OS Lite (Pis), Ubuntu 22.04 (VM) |
+| Remote access (optional) | Tailscale (for development)          |
+| Operating systems  | Debian 13 (Mini PC), Raspberry Pi OS Lite (Pis) |
 
 ---
 
 ## Hardware Inventory
 
-| Device               | Role                                    | Quantity |
-|----------------------|-----------------------------------------|----------|
-| Mini PC (Debian)     | K3s master                              | 1        |
-| Raspberry Pi 4       | Workers (three) + LoRa gateway (one)    | 4        |
-| Raspberry Pi 4       | Dedicated router                        | 1        |
-| NETGEAR GS305E       | Managed switch (VLAN support)           | 1        |
-| Unmanaged switch     | Extends worker network                  | 1        |
-| Waveshare SX1262 HAT | LoRa radio attached to `worker1`        | 1        |
-| Cardputer ADV        | LoRa field node (sends messages)        | 1        |
-| Power supplies       | 5V/3A USB‑C for each Pi + Mini PC PSU   | (10 outlets total) |
+| Device                          | Role                                    | Quantity |
+|---------------------------------|-----------------------------------------|----------|
+| MeLE Quieter 4C Mini PC (N100, 16GB RAM, 512GB SSD) | K3s master + Rancher | 1        |
+| Raspberry Pi 4 (4GB)            | Workers (three) + LoRa gateway (one)    | 4        |
+| Raspberry Pi 4 (4GB)            | Dedicated router                        | 1        |
+| NETGEAR GS305E                  | Managed switch (VLAN support)           | 1        |
+| Waveshare SX1262 HAT            | LoRa radio attached to `worker1`        | 1        |
+| Cardputer ADV                   | Field node base unit                    | 1        |
+| LoRa module (e.g., Ra‑01S)      | Attached to Cardputer                   | 1        |
+| Power supplies                  | 5V/3A USB‑C for each Pi, Mini PC PSU    | (7 outlets total) |
+
+The Cardputer ADV costs approximately $30 USD. The LoRa module costs approximately $15 USD. Total field node cost is $45 USD.
 
 ---
 
@@ -119,8 +134,8 @@ A **Raspberry Pi router** routes between VLANs and enforces firewall rules (e.g.
 ### Prerequisites
 
 - All hardware assembled and powered.
-- Static IPs assigned according to [`Network-Topology.md`](https://github.com/x-alted/kuber-tuber/blob/main/Network-Topology.md).
-- SSH access to all nodes (password or key‑based).
+- Static IPs assigned according to [Network-Topology.md](Networking/Network-Topology.md).
+- SSH access to all nodes (key‑based authentication recommended).
 
 ### Quick Start (After Initial Setup)
 
@@ -131,11 +146,14 @@ A **Raspberry Pi router** routes between VLANs and enforces firewall rules (e.g.
    All nodes should show `Ready`.
 
 2. **Access Rancher UI**  
-   Open `https://10.0.10.214:30443` (accept self‑signed certificate).  
-   Login with admin credentials (retrieve from bootstrap secret if needed).
+   Open `https://10.0.10.201:30443` (accept self‑signed certificate).  
+   Login with username `admin`. Retrieve the initial bootstrap password from the Kubernetes secret:
+   ```bash
+   kubectl get secret -n cattle-system bootstrap-secret -o go-template='{{.data.bootstrapPassword|base64decode}}'
+   ```
 
 3. **Send a test LoRa message**  
-   - On the Cardputer, select the pre‑configured encrypted message option.
+   - On the Cardputer, type a message and press Send.
    - On `worker1`, tail the LoRa receiver logs:
      ```bash
      journalctl -u lora-gateway -f
@@ -154,14 +172,13 @@ A **Raspberry Pi router** routes between VLANs and enforces firewall rules (e.g.
 
 | Control                  | Implementation |
 |--------------------------|----------------|
-| SSH key authentication   | Passwords disabled on all nodes; team public key deployed. |
+| SSH key authentication   | Passwords disabled on all nodes; team public keys deployed. |
 | Firewalls                | UFW on each node (default deny); iptables on router for inter‑VLAN filtering. |
-| Kubernetes RBAC          | Role‑based access control configured; audit logging enabled. |
 | LoRa encryption          | AES‑256 pre‑shared key stored as Kubernetes secret. |
-| VLAN isolation          | Management, control plane, and worker networks separated at Layer 2. |
+| VLAN isolation           | Management, control plane, and worker networks separated at Layer 2. |
 | Rancher bootstrap        | Initial password reset; HTTPS only (self‑signed cert). |
 
-For detailed hardening steps, see [`checklists/hardening+security-configuration-tasks.md`](https://github.com/x-alted/kuber-tuber/blob/main/checklists/hardening+security-configuration-tasks.md) and [`Issues-Log.md`](https://github.com/x-alted/kuber-tuber/blob/main/Issues-Log.md).
+For detailed hardening steps, see [Security/Hardening-Tasks.md](Security/Hardening-Tasks.md) and [Issues-Log.md](Issues-Log.md).
 
 ---
 
@@ -174,9 +191,9 @@ For detailed hardening steps, see [`checklists/hardening+security-configuration-
 | LoRa send/receive (unencrypted) | ✅ Pass | Basic communication between Cardputer and `worker1`. |
 | LoRa encrypted message   | ✅ Pass | AES‑256 decryption works; key from Kubernetes secret. |
 | Node failure (worker)    | ✅ Pass | Pods reschedule to another worker within ~30s. |
-| Rancher availability     | ✅ Pass | Dashboard accessible after cluster rebuild. |
+| Rancher availability     | ✅ Pass | Dashboard accessible on master node after cluster rebuild. |
 
-Full test matrix and failure scenario results are in [`Test-Results.md`](https://github.com/x-alted/kuber-tuber/blob/main/Test-Results.md).
+Full test matrix and failure scenario results are in [Test-Results.md](Test-Results.md).
 
 ---
 
@@ -184,18 +201,16 @@ Full test matrix and failure scenario results are in [`Test-Results.md`](https:/
 
 | Issue | Workaround / Resolution |
 |-------|--------------------------|
-| K3s does not easily change node IPs | Re‑installed K3s after moving to new subnet (documented in [`Issues-Log.md`](https://github.com/x-alted/kuber-tuber/blob/main/Issues-Log.md)). |
-| Rancher bootstrap password ignored | Retrieved password from Kubernetes secret: `kubectl get secret -n cattle-system bootstrap-secret -o go-template='{{.data.bootstrapPassword\|base64decode}}'` |
-| VLAN trunk configuration on Pi router | Used `systemd-networkd` with VLAN tagged interfaces (config in [`Service-Configuration.md`](https://github.com/x-alted/kuber-tuber/blob/main/Service-Configuration.md)). |
-| Tailscale connectivity drops | Re‑authenticated Tailscale; now stable. |
+| K3s does not easily change node IPs | Re‑installed K3s after moving to new subnet (documented in [Issues-Log.md](Issues-Log.md)). |
+| Rancher bootstrap password ignored | Retrieved password from Kubernetes secret (see Quick Start above). |
+| VLAN trunk configuration on Pi router | Used `systemd-networkd` with VLAN tagged interfaces (config in [Service-Configuration.md](Service-Configuration.md)). |
 
 ---
 
 ## Future Roadmap
 
-- **Multi‑cluster federation** – Link multiple Kuber‑Tuber hubs over LoRa.
-- **Matrix/Dendrite integration** – Provide a full chat interface over the mesh.
-- **Solar/battery power** – Make the hub truly portable (reduce outlet dependency).
+- **Matrix/Dendrite integration** – Provide a full chat interface over the LoRa mesh.
+- **Solar/battery power** – Make the hub truly portable.
 - **Over‑the‑air key rotation** – Update encryption keys without re‑flashing field nodes.
 - **Web dashboard for messages** – Replace log viewing with a user‑friendly UI.
 
