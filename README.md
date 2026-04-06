@@ -207,7 +207,7 @@ Full test matrix and failure scenario results are in [Test-Results.md](Test-Resu
 
 ---
 
-## Future Roadmap
+## Ideas for the Future
 
 - **Matrix/Dendrite integration** – Provide a full chat interface over the LoRa mesh.
 - **Solar/battery power** – Make the hub truly portable.
