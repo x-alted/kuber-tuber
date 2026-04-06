@@ -1,6 +1,6 @@
 # Frequently Asked Questions
 
-## For Everyone (Basic Questions)
+## Basic Questions
 
 ### What is Kuber-Tuber?
 
@@ -33,9 +33,6 @@ Approximate total: $450-$550 USD depending on sources. The Cardputer field node 
 
 Typical power draw is between 20 and 35 watts. The MeLE Quieter 4C Mini PC uses 6-10 watts. Each Raspberry Pi 4 uses 3-8 watts. The NETGEAR GS305E switch uses 2-4.5 watts. The LoRa HAT uses negligible power. The system is designed for AC outlets; battery or solar operation was not implemented but is possible as future work.
 
----
-
-## Basic Concepts
 
 ### What is LoRa and why is it used in this project?
 
