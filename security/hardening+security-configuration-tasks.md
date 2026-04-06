@@ -1,4 +1,3 @@
-```markdown
 # Hardening & Security 
 
 ---
