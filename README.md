@@ -46,7 +46,7 @@ kuber-tuber/
 │   ├── KuberTuber-Cardputer.ino
 │   ├── decrypt_utils.py
 │   ├── LoRa-Bridge.py
-│   ├── receiver-service.py
+│   ├── receiver-service.yaml
 │   ├── test_decryption.py
 │   ├── LoRA-Test.py
 │   └── LoRa-Tasks.md
