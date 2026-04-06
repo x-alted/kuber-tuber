@@ -1,14 +1,4 @@
-# Kuber-Tuber 
-## Setup & Testing Checklist
----
-
-**Version:** 1.5.2
-
-**Created by:** Alex  
-
-**Date:** February 11, 2026 – April 8th, 2026
-
-# Project Kuber-Tuber – Setup & Testing Checklist
+# Kuber-Tuber – Setup & Testing Checklist
 
 **Version:** 2.0  
 **Created by:** Alex  
