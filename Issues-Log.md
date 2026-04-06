@@ -16,8 +16,17 @@
 | 2026-03-13 | SSH keys not yet deployed on Pis (still using passwords) | Raspberry Pis | Pending until LoRa integration stable. | Open |
 | 2026-03-13 | Static IPs not yet configured (Pis on DHCP) | Raspberry Pis | Pending until LoRa integration stable. | Open |
 | 2026-03-13 | LoRa HAT drivers and tests not yet completed | worker1 / LoRa HAT | In progress; basic send/receive tests ongoing. | Open |
+| 2026-03-25 | `apt update` fails due to missing GPG key for fasttrack.debian.net | Mini PC (Debian) | Added missing key via `gpg --keyserver keyserver.ubuntu.com --recv-key 1FC324F50C00F13AE448A88CC47F8A8AAD743EF7` and exported to `/etc/apt/trusted.gpg.d/`. | Closed |
+| 2026-03-25 | VirtualBox VM fails to start: "VT-x is being used by another hypervisor (KVM)" | VirtualBox on Mini PC | Unloaded KVM kernel modules (`sudo rmmod kvm_intel` and `sudo rmmod kvm`) before starting VM. | Closed |
+| 2026-03-25 | Ubuntu VM password not documented; unable to SSH | Ubuntu VM | Reset password using live ISO and chroot (or GRUB recovery mode). New password set and documented securely. | Closed |
+| 2026-03-25 | VNC connection to VM drops immediately ("connection dropped by server") | VRDE / TigerVNC | Workaround: used SSH X11 forwarding (`ssh -X`) and `VBoxManage startvm "Ubuntu server" --type separate` to get graphical console. VRDE not used further. | Closed |
+| 2026-03-27 | K3s cluster IP range change required (from 192.168.2.x to 10.0.x.x) | K3s on all nodes | K3s does not easily allow node IP changes after initialisation. Re‑installed K3s on master and re‑joined all workers with new static IPs. | Closed |
+| 2026-03-27 | VLAN trunk configuration on Router Pi (single physical port) | Router Pi (Raspberry Pi OS) | Used `systemd-networkd` with VLAN tagged interfaces (`eth0.1`, `eth0.10`, `eth0.20`). Configuration documented in `Service-Configuration.md`. | Closed |
+| 2026-04-01 | Inter‑VLAN routing initially blocked by default iptables rules | Router Pi | Added explicit allow rules for required traffic (e.g., SSH from control plane to workers) and set default drop on forward chain. | Closed |
+| 2026-04-02 | LoRa encrypted message not appearing in cluster log | worker1 / Python receiver | Fixed by ensuring the decryption key (Kubernetes secret) was correctly mounted and the Python script restarted. | Closed |
+| 2026-04-05 | Pod rescheduling test: worker node not properly cordoned | K3s | Used `kubectl drain` before powering off worker; pod successfully rescheduled to another node. | Closed |
 
 **Notes:**
 - All closed issues have been verified and resolved as of the date shown.
 - Open issues are tracked in project milestones and will be addressed in upcoming weeks.
-- For detailed troubleshooting steps, refer to relevant sections in `SERVICE-CONFIG.md` and weekly logs in `SETUP-CHECKLIST.md`.
+- For detailed troubleshooting steps, refer to relevant sections in `SERVICE-CONFIG.md` and weekly logs in `checklists/Setup-&-Testing-Checklist.md`.
