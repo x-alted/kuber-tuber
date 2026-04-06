@@ -1,6 +1,6 @@
 # Kuber-Tuber – Setup & Testing Checklist
 
-**Version:** 2.0  
+**Version:** 0.9
 **Created by:** Alex  
 **Date:** February 11, 2026 – April 6, 2026  
 **Status:** Basic cluster & networking complete; LoRa integration testing in progress.
