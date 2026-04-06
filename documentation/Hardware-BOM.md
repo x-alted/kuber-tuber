@@ -1,4 +1,5 @@
-# Kuber‑Tuber Hardware Bill of Materials (BOM)
+# Kuber‑Tuber 
+## Hardware Bill of Materials (BOM)
 
 **Version:** 1.0  
 **Date:** April 6, 2026  
