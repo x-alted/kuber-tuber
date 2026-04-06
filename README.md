@@ -220,20 +220,12 @@ Full test matrix and failure scenario results are in [Test-Results.md](Test-Resu
 
 **Cybersecurity Capstone Team** (alphabetical order):
 
-- Alex – Documentation, encryption, hardware, presentation
-- Anthony – Networking, router configuration, VLANs
-- Nathan – Kubernetes, Rancher, Mini PC owner, resilience testing
-- Nick – LoRa HAT installation, Tailscale, radio testing
-
-Instructor: [Name]
+- Alex – Documentation, hardware, OS configuration, Cardputer
+- Anthony – Networking, programming, router configuration, VLANs
+- Nathan – Kubernetes, Rancher, OS configuration, resilience testing
+- Nick – LoRa, Cardputer, encryption, radio testing
 
 Special thanks to the open‑source communities behind K3s, Rancher, and Raspberry Pi.
-
----
-
-## License
-
-This project is licensed under the MIT License – see the [LICENSE](LICENSE) file for details.
 
 ---
 
