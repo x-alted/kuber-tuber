@@ -23,8 +23,6 @@
 | 2026-03-27 | K3s cluster IP range change required (from 192.168.2.x to 10.0.x.x) | K3s on all nodes | K3s does not easily allow node IP changes after initialisation. Re‑installed K3s on master and re‑joined all workers with new static IPs. | Closed |
 | 2026-03-27 | VLAN trunk configuration on Router Pi (single physical port) | Router Pi (Raspberry Pi OS) | Used `systemd-networkd` with VLAN tagged interfaces (`eth0.1`, `eth0.10`, `eth0.20`). Configuration documented in `Service-Configuration.md`. | Closed |
 | 2026-04-01 | Inter‑VLAN routing initially blocked by default iptables rules | Router Pi | Added explicit allow rules for required traffic (e.g., SSH from control plane to workers) and set default drop on forward chain. | Closed |
-| 2026-04-02 | LoRa encrypted message not appearing in cluster log | worker1 / Python receiver | Fixed by ensuring the decryption key (Kubernetes secret) was correctly mounted and the Python script restarted. | Closed |
-| 2026-04-05 | Pod rescheduling test: worker node not properly cordoned | K3s | Used `kubectl drain` before powering off worker; pod successfully rescheduled to another node. | Closed |
 
 **Notes:**
 - All closed issues have been verified and resolved as of the date shown.
