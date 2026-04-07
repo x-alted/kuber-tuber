@@ -1,4 +1,4 @@
-# Hardening & Security 
+# Security & Hardening Checklist
 
 ---
 
