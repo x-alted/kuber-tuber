@@ -107,6 +107,9 @@ The Kuber‑Tuber hub consists of **five compute nodes** (one Mini PC master + f
 - **NETGEAR GS305E** was purchased on Amazon.ca for **$35 CAD**. 
 - **Cardputer-ADV** was purchased from [M5Stack.com](https://m5stack.com) for **$30 USD** with the **LoRa-1262** hat for **$15 USD**, approximately **$62 combined in CAD**.
 - **LoRa HAT** was sourced from Amazon.ca for **$50 CAD**.
+- Each Raspberry Pi and the Cardputer ADV require a **MicroSD card** with a minimum of 16gb capacity.
+
+Prior to this Capstone project, the team was already in possession of the Mini PC, Cardputer ADV, and all MicroSD cards.
 
 ---
 
@@ -117,3 +120,14 @@ The Kuber‑Tuber hub consists of **five compute nodes** (one Mini PC master + f
 | Use Raspberry Pi 3B+ for router (if available) | ~$50 | Slower CPU, still sufficient for routing |
 | Use 2GB RAM Pis for workers instead of 4GB | ~$80 total | May limit future workloads |
 | Use second‑hand / refurbished Pis | Varies | Availability uncertain; no warranty |
+
+
+---
+
+## 11. Note / Acknowledgement
+
+In the time since this project began in January 2026, the single-board-computer (SBC) market in particular has been hit heavily by memory supply chain disruptions, with the newer 16gb Raspberry Pi 5 being unattainable. In addition, the MicroSD cards needed for this cluster have tripled in price. 
+
+We acknowledge the explosion of memory and storage prices of 2025 and beyond, and note that this document is a time-capsule of what is available at the time of our commmit. 
+
+A good computer does not always need to be the newest. Together, they are stronger. 
