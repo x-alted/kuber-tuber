@@ -104,7 +104,8 @@ The Kuber‑Tuber hub consists of **five compute nodes** (one Mini PC master + f
 
 - **Mini PC** was purchased at **$400 CAD** on Amazon.ca.
 - **Router Pi** uses a 2GB Raspberry Pi 4, purchased at **$90 CAD** from Amazon.ca; the three workers are 4GB Raspberry Pi 4's, purchased from PiShop at **$100 CAD** each.
-- **Cardputer-ADV** was purchased from [M5Stack.com](https://m5stack.com) for **$30 USD** with the **LoRa-1262** hat for **$15 USD**, approximately $62 combined in CAD.
+- **NETGEAR GS305E** was purchased on Amazon.ca for **$35 CAD**. 
+- **Cardputer-ADV** was purchased from [M5Stack.com](https://m5stack.com) for **$30 USD** with the **LoRa-1262** hat for **$15 USD**, approximately **$62 combined in CAD**.
 - **LoRa HAT** was sourced from Amazon.ca for **$50 CAD**.
 
 ---
