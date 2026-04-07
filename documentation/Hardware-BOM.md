@@ -89,7 +89,7 @@ The Kuber‑Tuber hub consists of **five compute nodes** (one Mini PC master + f
 
 ---
 
-## 8. Sourcing Notes (Canada)
+## 8. Sourcing Notes
 
 - **Raspberry Pis & Accessories:** [PiShop.ca](https://www.pishop.ca) is the official Canadian authorised reseller. Stock fluctuates – backorders are common.
 - **Managed Switch (GS305E):** Widely available at [Staples](https://www.staples.ca), [Best Buy](https://www.bestbuy.ca), and [Amazon.ca](https://www.amazon.ca). Prices range from $32–$45.
@@ -102,10 +102,10 @@ The Kuber‑Tuber hub consists of **five compute nodes** (one Mini PC master + f
 
 ## 9. Notes on Our Actual Build
 
-- The team already owned the **Mini PC** (cost not included in the totals above). If purchasing new, add $200–$300.
-- **Router Pi** uses a 2GB Raspberry Pi 4; workers use 4GB units.
-- **Cardputer** was purchased from Amazon.ca for $70.02.
-- **LoRa HAT** was sourced from Amazon.ca for $49.06.
+- **Mini PC** was purchased at **$400 CAD** on Amazon.ca.
+- **Router Pi** uses a 2GB Raspberry Pi 4, purchased at **$90 CAD** from Amazon.ca; the three workers are 4GB Raspberry Pi 4's, purchased from PiShop at **$100 CAD** each.
+- **Cardputer-ADV** was purchased from [M5Stack.com](https://m5stack.com) for **$30 USD** with the **LoRa-1262** hat for **$15 USD**, approximately $62 combined in CAD.
+- **LoRa HAT** was sourced from Amazon.ca for **$50 CAD**.
 
 ---
 
