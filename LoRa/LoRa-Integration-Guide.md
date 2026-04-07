@@ -1,197 +1,384 @@
-# LoRa Integration Guide 
+This is a full guide for implementing the LoRa gateway on the Kuber-Tuber project.
 
-This guide walks through the complete setup of the LoRa gateway (`worker1`), the bridge service, the Kubernetes receiver, and the Cardputer field node. All necessary files are in the repository.
+## Table of Contents
+1.  [Hardware Setup & Initial Configuration](#1-hardware-setup--initial-configuration)
+2.  [Software Environment & Dependencies](#2-software-environment--dependencies)
+3.  [Implementing the LoRa Bridge (Python)](#3-implementing-the-lora-bridge-python)
+4.  [Deploying the Receiver Service](#4-deploying-the-receiver-service)
+5.  [Security Integration: AES-256 Key Management](#5-security-integration-aes-256-key-management)
+6.  [Testing & Validation](#6-testing--validation)
+7.  [Troubleshooting Common Issues](#7-troubleshooting-common-issues)
 
 ---
 
-## Prerequisites
+## 1. Hardware Setup & Initial Configuration
+This section covers the physical setup of the Waveshare SX1262 LoRa HAT on your designated worker node (e.g., `worker1`) and enabling the necessary interfaces.
 
-- `worker1` is joined to the K3s cluster and has static IP `10.0.20.208`.
-- LoRa HAT (Waveshare SX1262) is physically attached to `worker1`.
-- Cardputer ADV with LoRa module (915 MHz) is available.
+### 1.1. Hardware Installation
+1.  **Attach the HAT**: Carefully connect the Waveshare SX1262 LoRa HAT to the 40-pin GPIO header of your Raspberry Pi worker node (`worker1`). Ensure it is seated firmly and evenly. The HAT uses the CE0 (GPIO8) pin for Chip Select (CS) and GPIO25 for the Reset pin. Ensure your antenna is securely attached to the HAT's SMA connector.
+
+### 1.2. Software Configuration
+1.  **Enable SPI**: The LoRa HAT communicates over the Serial Peripheral Interface (SPI) bus. Enable it by running `sudo raspi-config`, navigating to `Interface Options` -> `SPI`, and selecting `<Yes>` to enable the SPI interface. Alternatively, you can add `dtparam=spi=on` to `/boot/config.txt` and reboot.
+2.  **Verify SPI Detection**: After a reboot, verify the SPI device is detected:
+    ```bash
+    ls /dev/spidev*
+    ```
+    You should see `spidev0.0` and `spidev0.1` listed. This confirms the SPI interface is active.
 
 ---
 
-## Step 1: Verify LoRa Hardware on worker1
+## 2. Software Environment & Dependencies
+Set up the Python environment on your worker node (`worker1`) to run the LoRa bridge service.
 
-Run the basic detection script:
-
+### 2.1. Install System Dependencies
 ```bash
-cd ~
-git clone https://github.com/x-alted/kuber-tuber.git
-cd kuber-tuber
-python3 LoRa/LoRA-Test.py
+sudo apt update
+sudo apt install python3-pip python3-venv -y
 ```
 
-Expected output: `LoRa HAT detected!`
-
-If not detected, enable SPI (`dtparam=spi=on` in `/boot/config.txt`) and reboot. See [LoRa-Tasks.md](https://github.com/x-alted/kuber-tuber/blob/main/LoRa/LoRa-Tasks.md) for detailed troubleshooting.
-
----
-
-## Step 2: Install Python Dependencies on worker1
-
+### 2.2. Create and Activate a Virtual Environment
+It is a best practice to use a virtual environment to avoid conflicts with system packages.
 ```bash
-cd ~/kuber-tuber/LoRa
+cd /home/pi
+mkdir kuber-tuber && cd kuber-tuber
 python3 -m venv venv
 source venv/bin/activate
-pip install -r requirements.txt
 ```
 
-The [`requirements.txt`](https://github.com/x-alted/kuber-tuber/blob/main/LoRa/requirements.txt) file lists all needed Python packages (`adafruit-circuitpython-rfm9x`, `pycryptodome`, `requests`).
+### 2.3. Install Python Packages
+With the virtual environment activated, install the required libraries:
+```bash
+pip install adafruit-circuitpython-rfm9x pycryptodome requests
+```
+*   `adafruit-circuitpython-rfm9x`: Provides the interface to control the SX1262 LoRa radio.
+*   `pycryptodome`: A self-contained cryptographic library used for AES-256-CBC decryption.
+*   `requests`: Used to forward the decrypted message to the internal receiver service via HTTP POST.
 
 ---
 
-## Step 3: Test Decryption Utility
+## 3. Implementing the LoRa Bridge (Python)
+This is the core of your gateway implementation. The bridge script will listen for LoRa packets, decrypt them, and forward them to your Kubernetes cluster.
 
-Before running the bridge, test the decryption logic standalone:
+### 3.1. The Decryption Utility (`decrypt_utils.py`)
+Create a shared utility file for decryption. This function will be called by the main bridge script.
+```python
+import base64
+from Crypto.Cipher import AES
 
-```bash
-python test_decryption.py
+def decrypt_payload(b64_ciphertext, key_bytes):
+    """
+    Decrypt a Base64-encoded LoRa packet.
+    Returns (seq, message) or (None, error_reason).
+    """
+    try:
+        raw = base64.b64decode(b64_ciphertext)
+    except Exception as e:
+        return None, f"Base64 decode error: {e}"
+    
+    if len(raw) < 16:
+        return None, "Packet too short"
+    
+    iv = raw[:16]
+    ciphertext = raw[16:]
+    cipher = AES.new(key_bytes, AES.MODE_CBC, iv)
+    
+    try:
+        decrypted = cipher.decrypt(ciphertext)
+    except Exception as e:
+        return None, f"Decryption failed: {e}"
+    
+    pad_len = decrypted[-1]
+    if pad_len < 1 or pad_len > 16:
+        return None, f"Invalid padding length: {pad_len}"
+    
+    for i in range(1, pad_len + 1):
+        if decrypted[-i] != pad_len:
+            return None, "Corrupted padding"
+    
+    plaintext_bytes = decrypted[:-pad_len]
+    
+    try:
+        plaintext = plaintext_bytes.decode('utf-8')
+    except UnicodeDecodeError:
+        return None, "Invalid UTF-8"
+    
+    parts = plaintext.split('|', 1)
+    if len(parts) != 2:
+        return None, f"Invalid format: {plaintext}"
+    
+    seq_str, message = parts
+    try:
+        seq = int(seq_str)
+    except ValueError:
+        return None, f"Sequence not integer: {seq_str}"
+    
+    return (seq, message), None
+```
+*This function handles Base64 decoding, IV extraction, AES-256-CBC decryption, PKCS#7 padding removal, and parsing of the plaintext format (`<seq>|<message>`).*
+
+### 3.2. The Main Bridge Script (`LoRa-Bridge.py`)
+This script initializes the LoRa radio, runs the main receive loop, and forwards messages.
+```python
+#!/usr/bin/env python3
+import time
+import board
+import busio
+import digitalio
+import adafruit_rfm9x
+import base64
+import json
+import requests
+from Crypto.Cipher import AES
+from decrypt_utils import decrypt_payload
+
+# ==================== CONFIGURATION ====================
+RADIO_FREQ_MHZ = 915.0
+CS_PIN = board.CE0
+RESET_PIN = board.D25
+RECEIVER_URL = "http://lora-receiver.lora-demo.svc.cluster.local:8080/api/v1/messages"
+
+# WARNING: In production, retrieve this key from a secure store or env var.
+# For this guide, we define it directly.
+AES_KEY = bytes([
+    0x60, 0x3d, 0xeb, 0x10, 0x15, 0xca, 0x71, 0xbe,
+    0x2b, 0x73, 0xae, 0xf0, 0x85, 0x7d, 0x77, 0x81,
+    0x1f, 0x35, 0x2c, 0x07, 0x3b, 0x61, 0x08, 0xd7,
+    0x2d, 0x98, 0x10, 0xa3, 0x09, 0x14, 0xdf, 0xf4
+])
+
+last_seq = {"cardputer": 0}
+
+# ==================== LoRa INITIALIZATION ====================
+spi = busio.SPI(board.SCK, board.MOSI, board.MISO)
+cs = digitalio.DigitalInOut(CS_PIN)
+reset = digitalio.DigitalInOut(RESET_PIN)
+rfm9x = adafruit_rfm9x.RFM9x(spi, cs, reset, RADIO_FREQ_MHZ)
+rfm9x.tx_power = 23  # Set transmit power (max 23 dBm)
+print("LoRa bridge started. Waiting for packets...")
+
+# ==================== ACK FUNCTION ====================
+def send_ack(seq):
+    ack_message = f"ACK:{seq}"
+    rfm9x.send(ack_message.encode())
+    print(f"Sent ACK for seq {seq}")
+
+# ==================== MAIN RECEIVE LOOP ====================
+while True:
+    packet = rfm9x.receive(timeout=5.0)
+    if packet is None:
+        continue
+    
+    try:
+        raw_str = packet.decode('utf-8').strip()
+    except UnicodeDecodeError:
+        print("Received non-UTF8 packet, ignoring")
+        continue
+    
+    print(f"Received: {raw_str}")
+    
+    result, error = decrypt_payload(raw_str, AES_KEY)
+    if result is None:
+        print(f"Decryption failed: {error}")
+        continue
+    
+    seq, message = result
+    source = "cardputer"
+    
+    # Replay protection
+    if seq <= last_seq.get(source, 0):
+        print(f"Replay attack detected! seq={seq} <= last_seq={last_seq[source]}. Ignoring.")
+        continue
+    
+    last_seq[source] = seq
+    
+    payload = {
+        "seq": seq,
+        "message": message,
+        "source": source,
+        "timestamp": time.time()
+    }
+    
+    try:
+        resp = requests.post(RECEIVER_URL, json=payload, timeout=5)
+        if resp.status_code == 200:
+            print(f"Message accepted by receiver (seq {seq})")
+            send_ack(seq)
+        else:
+            print(f"Receiver returned error {resp.status_code}: {resp.text}")
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to contact receiver service: {e}")
+    
+    time.sleep(0.1)
 ```
 
-This script simulates encrypted packets, decrypts them, and verifies replay protection. All tests should pass.  
-See [`test_decryption.py`](https://github.com/x-alted/kuber-tuber/blob/main/LoRa/test_decryption.py) for the source.
+### 3.3. Run as a Systemd Service
+To ensure the bridge starts automatically on boot and restarts if it crashes, create a systemd service.
+1.  Create a service file: `sudo nano /etc/systemd/system/lora-bridge.service`
+2.  Add the following content:
+    ```ini
+    [Unit]
+    Description=LoRa Bridge to Kubernetes
+    After=network.target
+
+    [Service]
+    User=pi
+    WorkingDirectory=/home/pi/kuber-tuber/LoRa
+    ExecStart=/home/pi/kuber-tuber/venv/bin/python /home/pi/kuber-tuber/LoRa/LoRa-Bridge.py
+    Restart=always
+    RestartSec=10
+
+    [Install]
+    WantedBy=multi-user.target
+    ```
+3.  Enable and start the service:
+    ```bash
+    sudo systemctl enable lora-bridge.service
+    sudo systemctl start lora-bridge.service
+    sudo systemctl status lora-bridge.service
+    ```
 
 ---
 
-## Step 4: Deploy the Kubernetes Receiver Service
+## 4. Deploying the Receiver Service
+The receiver service is a Kubernetes pod that accepts HTTP POST requests from the LoRa bridge, validates them, and logs the messages.
 
-The receiver is a Flask application that runs inside the cluster. Apply the YAML definition:
-
-```bash
-kubectl apply -f https://raw.githubusercontent.com/x-alted/kuber-tuber/main/LoRa/receiver_service.yaml
+### 4.1. Create the Kubernetes Deployment and Service (`receiver_service.yaml`)
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lora-receiver
+  namespace: lora-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lora-receiver
+  template:
+    metadata:
+      labels:
+        app: lora-receiver
+    spec:
+      containers:
+      - name: receiver
+        image: python:3.9-slim
+        command: ["python", "-c"]
+        args:
+          - |
+            import os, json, time
+            from flask import Flask, request, jsonify
+            app = Flask(__name__)
+            last_seq = {"cardputer": 0}
+            @app.route('/api/v1/messages', methods=['POST'])
+            def receive_message():
+                data = request.get_json()
+                if not data:
+                    return jsonify({"status": "error", "reason": "Missing JSON body"}), 400
+                seq = data.get('seq')
+                msg = data.get('message')
+                source = data.get('source', 'unknown')
+                if seq is None or msg is None:
+                    return jsonify({"status": "error", "reason": "Missing required field"}), 400
+                if not isinstance(seq, int) or seq < 0:
+                    return jsonify({"status": "error", "reason": "Invalid sequence number"}), 400
+                if seq <= last_seq.get(source, 0):
+                    return jsonify({"status": "error", "reason": "Replayed or out-of-order sequence"}), 400
+                last_seq[source] = seq
+                human_ts = time.strftime('%Y-%m-%dT%H:%M:%S', time.localtime())
+                app.logger.info(f"[{human_ts}] source={source} seq={seq} msg={msg}")
+                print(f"ACCEPTED: {human_ts} | {source} | seq {seq} | {msg}")
+                return jsonify({"status": "accepted", "seq": seq}), 200
+            @app.route('/health', methods=['GET'])
+            def health():
+                return jsonify({"status": "healthy"}), 200
+            app.run(host='0.0.0.0', port=8080, debug=False)
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lora-receiver
+  namespace: lora-demo
+spec:
+  selector:
+    app: lora-receiver
+  ports:
+    - port: 8080
+      targetPort: 8080
 ```
+*This YAML defines a Flask-based receiver that validates the JSON payload, performs replay protection, and logs the message.*
 
-Verify the pod is running:
-
+### 4.2. Deploy to the Cluster
 ```bash
+kubectl create namespace lora-demo
+kubectl apply -f receiver_service.yaml
 kubectl get pods -n lora-demo
-```
-
-The service is named `lora-receiver` and listens on port 8080.  
-See [`receiver_service.yaml`](https://github.com/x-alted/kuber-tuber/blob/main/LoRa/receiver_service.yaml) for the embedded Flask code.
-
----
-
-## Step 5: Configure the LoRa Bridge on worker1
-
-The bridge script (`LoRa-Bridge.py`) listens for LoRa packets, decrypts them, and forwards to the receiver service.
-
-1. Ensure the AES key inside [`LoRa-Bridge.py`](https://github.com/x-alted/kuber-tuber/blob/main/LoRa/LoRa-Bridge.py) matches the key in the Cardputer firmware (both are hardcoded in the provided files – change them together if needed).
-
-2. Test the bridge manually:
-
-```bash
-cd ~/kuber-tuber/LoRa
-source venv/bin/activate
-python LoRa-Bridge.py
-```
-
-3. Install the systemd service using the provided unit file:
-
-```bash
-sudo cp ~/kuber-tuber/LoRa/lora-bridge.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable lora-bridge
-sudo systemctl start lora-bridge
-sudo systemctl status lora-bridge
-```
-
-The [`lora-bridge.service`](https://github.com/x-alted/kuber-tuber/blob/main/LoRa/lora-bridge.service) file ensures the bridge starts automatically on boot.
-
----
-
-## Step 6: Flash the Cardputer Firmware
-
-The firmware is in [`KuberTuber-Cardputer.ino`](https://github.com/x-alted/kuber-tuber/blob/main/LoRa/KuberTuber-Cardputer.ino) and uses PlatformIO with the included [`platformio.ini`](https://github.com/x-alted/kuber-tuber/blob/main/LoRa/platformio.ini).
-
-1. Open the folder `LoRa/` in PlatformIO (or VS Code with PlatformIO extension).
-2. Verify the LoRa frequency is set to `915.0` (line `#define LORA_FREQ 915.0`).
-3. Ensure the AES key matches the one in `LoRa-Bridge.py`.
-4. Connect the Cardputer via USB and upload:
-
-```bash
-pio run --target upload
-```
-
-After flashing, the screen shows "KUBER-TUBER v2.0" and the current sequence number.
-
----
-
-## Step 7: End‑to‑End Test
-
-1. On `worker1`, watch the bridge logs:
-
-```bash
-journalctl -u lora-bridge -f
-```
-
-2. On the Cardputer, type a message and press **Send**.
-
-Expected flow:
-- Bridge receives a packet, decrypts it, prints "Received: ..."
-- Bridge sends HTTP POST to `http://lora-receiver.lora-demo.svc.cluster.local:8080/api/v1/messages`
-- Receiver logs the message to its pod logs.
-- Bridge receives an ACK from the receiver and sends a LoRa ACK back to the Cardputer.
-- Cardputer shows green flash and increments the sequence number.
-
-3. Verify the message appears in the receiver logs:
-
-```bash
 kubectl logs -n lora-demo deployment/lora-receiver
 ```
 
-You should see a line like:
+---
 
+## 5. Security Integration: AES-256 Key Management
+Storing the AES key in plaintext in your scripts is a significant security risk. Use Kubernetes Secrets for secure management.
+
+### 5.1. Create the Secret
+Encode your 32-byte AES key in base64 and create the secret.
+```bash
+# Generate a secure key (or use your existing one)
+openssl rand -base64 32
+# Create the secret
+kubectl create secret generic lora-aes-key \
+  --namespace lora-demo \
+  --from-literal=key='your-base64-encoded-key-here'
 ```
-ACCEPTED: 2026-04-06T14:32:01 | cardputer | seq 42 | Hello Kuber-Tuber
-```
+
+### 5.2. Mount the Secret in the Receiver Pod
+Update the `receiver_service.yaml` to mount the secret as an environment variable or a volume. The example above uses the key directly, but for production, you would modify the Python command to read from the mounted secret.
+
+### 5.3. Access the Secret from the Bridge
+The bridge script on the worker node should retrieve the key from the Kubernetes API instead of hardcoding it. You can use `kubectl` or the Kubernetes Python client to fetch the secret on startup, but this requires giving the node appropriate RBAC permissions.
 
 ---
 
-## Step 8: Test Replay Protection and Retries
+## 6. Testing & Validation
+Follow this sequence to validate your implementation.
 
-- Power off the receiver pod (`kubectl delete pod -n lora-demo ...`). Send a message – the bridge will fail to forward and will **not** send an ACK. The Cardputer will retry 3 times, then show red.
-- After restarting the receiver, send a new message – it should work.
-- If you capture a valid encrypted packet and replay it (e.g., using a second LoRa transmitter), the bridge will reject it because the sequence number is not greater than the last seen.
+### 6.1. Unencrypted LoRa Test
+Use a simple Python script or the `LoRA-Test.py` provided in your project to verify basic send/receive functionality without encryption.
 
----
+### 6.2. Encrypted End-to-End Test
+1.  Ensure the bridge service is running on `worker1`.
+2.  Ensure the receiver pod is running in the cluster.
+3.  On the Cardputer, type a message and press Send.
+4.  **Monitor the Bridge Logs**: `sudo journalctl -u lora-bridge -f`
+5.  **Monitor the Receiver Logs**: `kubectl logs -n lora-demo deployment/lora-receiver -f`
 
-## Step 9: Verify Persistence
+### 6.3. Replay Attack Test
+Send the same message twice. The second attempt should be rejected by the bridge's replay protection logic, and you should see "Replay attack detected" in the bridge logs.
 
-- Reboot `worker1` – the bridge starts automatically (systemd).
-- Reboot the Cardputer – the sequence number resumes from the last saved value (stored in NVS). The display shows the correct `Seq:`.
-
----
-
-## Troubleshooting
-
-| Symptom | Likely Cause | Check |
-|---------|--------------|-------|
-| `LoRA-Test.py` fails | SPI not enabled or wrong CS pin | `ls /dev/spidev*`; try `board.CE1` in the script. |
-| Bridge logs show "Decryption failed" | Key mismatch between Cardputer and bridge | Compare `AES_KEY` in [`KuberTuber-Cardputer.ino`](https://github.com/x-alted/kuber-tuber/blob/main/LoRa/KuberTuber-Cardputer.ino) and [`LoRa-Bridge.py`](https://github.com/x-alted/kuber-tuber/blob/main/LoRa/LoRa-Bridge.py). |
-| Bridge logs "Failed to contact receiver" | Receiver pod not running or network unreachable | `kubectl get pods -n lora-demo`; from `worker1`, `curl http://lora-receiver.lora-demo.svc.cluster.local:8080/health` |
-| Cardputer never gets ACK | Bridge not sending ACK or receiver not responding | Check bridge logs; ensure `send_ack()` is called. |
-| Replay attack warning | Same sequence number sent twice | Normal if you retransmit the same packet; bridge rejects it. |
+### 6.4. ACK and Retry Test
+Temporarily disable the receiver service (e.g., `kubectl scale deployment lora-receiver -n lora-demo --replicas=0`). Send a message from the Cardputer. It should retry up to 3 times and then fail with a red indicator.
 
 ---
 
-## Files Reference
+## 7. Troubleshooting Common Issues
 
-| File | Purpose |
-|------|---------|
-| [`LoRa/LoRA-Test.py`](https://github.com/x-alted/kuber-tuber/blob/main/LoRa/LoRA-Test.py) | Quick hardware detection |
-| [`LoRa/requirements.txt`](https://github.com/x-alted/kuber-tuber/blob/main/LoRa/requirements.txt) | Python dependencies |
-| [`LoRa/decrypt_utils.py`](https://github.com/x-alted/kuber-tuber/blob/main/LoRa/decrypt_utils.py) | Shared decryption logic |
-| [`LoRa/test_decryption.py`](https://github.com/x-alted/kuber-tuber/blob/main/LoRa/test_decryption.py) | Unit test for decryption |
-| [`LoRa/LoRa-Bridge.py`](https://github.com/x-alted/kuber-tuber/blob/main/LoRa/LoRa-Bridge.py) | Main bridge service (runs on `worker1`) |
-| [`LoRa/receiver_service.yaml`](https://github.com/x-alted/kuber-tuber/blob/main/LoRa/receiver_service.yaml) | Kubernetes deployment + service for the receiver (Flask app) |
-| [`LoRa/lora-bridge.service`](https://github.com/x-alted/kuber-tuber/blob/main/LoRa/lora-bridge.service) | Systemd unit file for the bridge |
-| [`LoRa/platformio.ini`](https://github.com/x-alted/kuber-tuber/blob/main/LoRa/platformio.ini) | PlatformIO configuration for Cardputer |
-| [`LoRa/KuberTuber-Cardputer.ino`](https://github.com/x-alted/kuber-tuber/blob/main/LoRa/KuberTuber-Cardputer.ino) | Cardputer firmware |
-| [`LoRa/LoRa-Tasks.md`](https://github.com/x-alted/kuber-tuber/blob/main/LoRa/LoRa-Tasks.md) | Detailed task checklist |
+### The LoRa HAT is not detected (`spidev` devices missing).
+*   **Solution**: Ensure SPI is enabled (`raspi-config`). Verify the HAT is fully seated. Check the chip select pin in your code (`board.CE0`).
+
+### `adafruit_rfm9x.RFM9x` initialization fails.
+*   **Solution**: Double-check your pin assignments (CS, RESET). Ensure no other process is using the SPI bus. Check the radio frequency matches your HAT and regional regulations (915 MHz for North America).
+
+### Decryption fails with "Invalid padding".
+*   **Solution**: This often indicates the AES key on the bridge does not match the key on the Cardputer. Verify the 32-byte key is identical in both places. Also, ensure the Cardputer's firmware is using the same CBC mode and PKCS#7 padding.
+
+### HTTP POST to receiver fails with "Connection refused".
+*   **Solution**: Verify the receiver pod is running (`kubectl get pods -n lora-demo`). Check the service name and namespace in the `RECEIVER_URL`. Ensure your worker node's network policy allows outbound connections to the cluster's service CIDR.
+
+### The sequence number resets to zero after a Cardputer reboot.
+*   **Solution**: This indicates the non-volatile storage (NVS) for the sequence number is not working. In the Cardputer firmware, ensure you are using `Preferences` to save and load the counter correctly. The team's final report notes that the `increment_seq()` function calls `save_seq_counter()` only after a successful ACK.
 
 ---
 
-After completing these steps, the LoRa integration is fully functional. 
+By following this guide, you will have a fully functional LoRa gateway integrated into your Kuber-Tuber Kubernetes cluster, complete with encryption, replay protection, and secure key management. For any further details, refer to the team's comprehensive final report and the project files.
