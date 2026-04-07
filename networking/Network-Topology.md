@@ -2,6 +2,7 @@
 
 | Device          | Local IP     | Hostname       | Role                               |
 |-----------------|--------------|----------------|------------------------------------|
+| Pi Router       | 192.168.2.229| RaspRouter     | Raspberry Pi Router                |
 | Mini PC         | 10.0.10.94   | debian-master  | K3s master (Control Plane)         |
 |                 | 10.0.10.93   |                | Dynamic secondary                  |
 | worker1         | 10.0.20.138  | worker1        | K3s worker, **LoRa host**          |
