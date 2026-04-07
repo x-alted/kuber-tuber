@@ -162,18 +162,6 @@ These are **not** trivial, but they are *enabled* by the architecture you’ve b
 
 ---
 
-## Summary Table
-
-| Category | Examples | Effort |
-|----------|----------|--------|
-| **Current Applications** | POS continuity, event messaging, temp sensor backup, construction coordination, rural clinic | Already working |
-| **Nearby Features** | Web dashboard, multi‑channel, SQLite persistence, SMS gateway, stored‑value payments | Days – 2 weeks |
-| **Future Ideas** | Multi‑hub mesh, OTA key rotation, Matrix chat, solar power, real‑time external auth | Weeks – months |
-
----
-
-## Conclusion
-
 Kuber‑Tuber is a **platform for offline‑first business continuity**. The current capabilities already deliver value for restaurants, warehouses, events, and clinics. 
 
 With modest extensions, it becomes a turnkey solution for local data persistence and alerting. And the architecture opens the door to truly resilient, federated, off‑grid networks, without relying on fragile cloud giants.
