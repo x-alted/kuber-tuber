@@ -1,6 +1,5 @@
 /*
- * Kuber‑Tuber Cardputer Firmware v2.0
- * Fully commented for educational clarity
+ * Kuber‑Tuber Cardputer Firmware
  * 
  * This firmware runs on the M5Stack Cardputer (ESP32‑S3) with a LoRa Cap (SX1262, 915 MHz).
  * 
