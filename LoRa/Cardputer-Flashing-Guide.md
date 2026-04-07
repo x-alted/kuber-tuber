@@ -1,4 +1,4 @@
-# Full Guide to Flashing and Installing the Cardputer Firmware
+# Flashing and Installing the Kuber-Tuber Firmware
 
 This guide assumes you have already completed the LoRa gateway setup on your worker node (`worker1`) and that the LoRa bridge service is running. 
 
