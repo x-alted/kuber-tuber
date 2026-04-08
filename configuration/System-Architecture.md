@@ -57,8 +57,9 @@ Kuber‑Tuber is a self‑contained, encrypted communication hub that combines a
 │  │ (logs messages) │  │ (test nginx,    │                   │
 │  └─────────────────┘  │  monitoring)    │                   │
 │                       └─────────────────┘                   │
-│  Master: Mini PC (10.0.10.201)                               │
-│  Workers: Ubuntu VM (10.0.10.214), worker1,2,3 (10.0.20.x)   │
+│  Master: Mini PC debian-master (10.0.10.94)                  │
+│  Workers: worker1 (10.0.20.138), worker2 (10.0.20.150),      │
+│           worker3 (10.0.20.63)                               │
 └───────────────────────────────┬─────────────────────────────┘
                                 │
                     ┌───────────┴───────────┐
@@ -76,8 +77,8 @@ Kuber‑Tuber is a self‑contained, encrypted communication hub that combines a
 | VLAN | Subnet        | Purpose         | Devices |
 |------|---------------|-----------------|---------|
 | 1    | 10.0.0.0/24   | Management      | Router Pi (mgmt), managed switch |
-| 10   | 10.0.10.0/24  | Control Plane   | Mini PC (master), Ubuntu VM (Rancher) |
-| 20   | 10.0.20.0/24  | Workers & LoRa  | worker1 (LoRa gateway), worker2, worker3, unmanaged switch |
+| 10   | 10.0.10.0/24  | Control Plane   | Mini PC `debian-master` (K3s master + Rancher) |
+| 20   | 10.0.20.0/24  | Workers & LoRa  | worker1 (LoRa gateway), worker2, worker3 |
 
 - **Router Pi:** Connects to managed switch on a trunk port (tagged VLAN 10 & 20). Provides inter‑VLAN routing with iptables firewall.
 - **Managed switch (NETGEAR GS305E):** Access ports for control plane devices (VLAN 10) and workers (VLAN 20).
@@ -91,8 +92,8 @@ For detailed IP assignments, see `Network-Topology.md`.
 
 ### 4.1 Kubernetes Cluster (K3s)
 
-- **Master node:** Mini PC (Debian 13) – runs K3s server process, etcd, API server.
-- **Worker nodes:** 3 Raspberry Pi 4s + 1 Ubuntu VM (Rancher host).
+- **Master node:** Mini PC `debian-master` (Debian 13, `10.0.10.94`) – runs K3s server process, etcd, API server.
+- **Worker nodes:** 3 Raspberry Pi 4s — worker1 (`10.0.20.138`), worker2 (`10.0.20.150`), worker3 (`10.0.20.63`).
 - **Installation:** Standard K3s script with `--tls-san` to include master IP.
 - **Networking:** Flannel (VXLAN) for pod‑to‑pod communication across nodes.
 - **Service discovery:** CoreDNS.
@@ -101,21 +102,23 @@ For detailed IP assignments, see `Network-Topology.md`.
 
 ### 4.2 Rancher Management Server
 
-- **Host:** Ubuntu 22.04 VM on VirtualBox (bridged network).
+- **Host:** Runs as a Helm deployment on the K3s cluster itself (pods scheduled to worker nodes).
 - **Installation:** Helm chart with cert‑manager for TLS (self‑signed).
-- **Access:** `https://10.0.10.214:30443` (NodePort).
+- **Access:** `https://10.0.10.94:30443` (NodePort on master).
 - **Authentication:** Admin password retrieved from Kubernetes secret (`bootstrap-secret`).
 - **Role:** Cluster visibility, workload management, node monitoring.
+- **Note:** Rancher service IP requires a reinstall to finalise — see `Network-Topology.md`.
 
 ### 4.3 LoRa Gateway (worker1)
 
-- **Hardware:** Raspberry Pi 4 + Waveshare SX1262 HAT (915 MHz).
-- **Software:** Python virtual environment with `adafruit-circuitpython-rfm9x`.
+- **Hardware:** Raspberry Pi 4 + Waveshare E22-900T22S LoRa HAT (SX1262, 915 MHz), communicating via UART (`/dev/ttyAMA0` at 9600 baud).
+- **Software:** Python script `LoRa/gateway/LoRa-Bridge.py` with dependencies `pyserial`, `pycryptodome`, `requests` (see `requirements.txt`).
 - **Bridge service:** Systemd service (`lora-bridge.service`) that:
-  - Listens for LoRa packets.
-  - Decrypts payload using AES‑256 (key from Kubernetes secret, mounted via file).
-  - Sends decrypted text as HTTP POST to the internal receiver service (`lora-receiver.lora-demo.svc.cluster.local:8080`).
-- **SPI configuration:** Enabled in `/boot/config.txt`; CS pin = CE0 (GPIO8), reset pin = GPIO25.
+  - Reads raw Base64 LoRa packets from the serial port.
+  - Decrypts payload using AES‑256-CBC (key hardcoded in bridge script; matches Cardputer firmware).
+  - Validates sequence numbers to prevent replay attacks.
+  - Sends decrypted text as HTTP POST to `lora-receiver.lora-demo.svc.cluster.local:8080`.
+  - Sends `ACK:<seq>` back to the Cardputer over the same serial link.
 
 ### 4.4 Router Pi (Inter‑VLAN Routing)
 
@@ -152,12 +155,12 @@ For detailed IP assignments, see `Network-Topology.md`.
 
 ### 5.2 Encryption Details
 
-- **Algorithm:** AES‑256 CBC.
+- **Algorithm:** AES‑256-CBC.
 - **Key length:** 32 bytes (256 bits).
-- **Key storage:** Kubernetes secret (`lora-encryption-key`) in `lora-demo` namespace.
-- **Initialization Vector (IV):** Random 16 bytes, prepended to ciphertext.
+- **Key storage:** Hardcoded as a Python `bytes` literal in `LoRa-Bridge.py` and as a `uint8_t` array in `src/main.cpp`. Both must be identical. This is a known trade-off for capstone scope — a production system would use a Kubernetes secret or HSM.
+- **Initialization Vector (IV):** Random 16 bytes generated by `esp_random()` on the Cardputer, prepended to ciphertext before Base64 encoding.
 - **Padding:** PKCS#7.
-- **Decryption on worker1:** Bridge reads key from a mounted secret file (or environment variable) – **not** hardcoded.
+- **Sequence number:** Prepended to plaintext as `<seq>|<message>` before encryption; bridge enforces monotonic ordering to block replay attacks.
 
 ### 5.3 Inter‑Component Communication Security
 

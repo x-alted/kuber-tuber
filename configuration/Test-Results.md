@@ -4,12 +4,12 @@
 
 *Test performed on: [date]*
 
-| From/To        | Mini PC (.201) | worker1 (.208) | worker2 (.207) | worker3 (.202) |
-|----------------|----------------|----------------|----------------|----------------|
-| **Mini PC**    | N/A            | [ ]            | [ ]            | [ ]            |
-| **worker1**    | [ ]            | N/A            | [ ]            | [ ]            |
-| **worker2**    | [ ]            | [ ]            | N/A            | [ ]            |
-| **worker3**    | [ ]            | [ ]            | [ ]            | N/A            |
+| From/To           | debian-master (.94) | worker1 (.138) | worker2 (.150) | worker3 (.63) |
+|-------------------|---------------------|----------------|----------------|---------------|
+| **debian-master** | N/A                 | [ ]            | [ ]            | [ ]           |
+| **worker1**       | [ ]                 | N/A            | [ ]            | [ ]           |
+| **worker2**       | [ ]                 | [ ]            | N/A            | [ ]           |
+| **worker3**       | [ ]                 | [ ]            | [ ]            | N/A           |
 
 *Note: All pings should succeed once basic network is stable.*
 

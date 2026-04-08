@@ -12,11 +12,10 @@ This guide walks you through powering up the Kuber‑Tuber hub, sending an encry
 
 The system requires **10 AC outlets** (power strips recommended). Connect in this order:
 
-1. **Router Pi** (the Raspberry Pi with two Ethernet cables – one to the managed switch, one to your upstream network if internet is desired, but not required).
+1. **Router Pi** (`RaspRouter`) — the Raspberry Pi with two Ethernet cables: one to the managed switch, one to upstream internet if desired (not required for core operation).
 2. **NETGEAR GS305E managed switch**.
-3. **Mini PC** (K3s master).
-4. **Ubuntu VM host** (if running on separate hardware; otherwise the VM starts automatically with its host).
-5. **Worker Pis** (worker1, worker2, worker3) – worker1 has the LoRa HAT attached.
+3. **Mini PC** (`debian-master`) — K3s control plane.
+4. **Worker Pis** (`worker1`, `worker2`, `worker3`) — worker1 has the LoRa HAT attached.
 
 Wait 2–3 minutes for all devices to boot and obtain their static IPs.
 
@@ -27,7 +26,7 @@ Wait 2–3 minutes for all devices to boot and obtain their static IPs.
 From a laptop connected to the same **management VLAN** (or directly to the switch’s management port), ping the router:
 
 ```bash
-ping 10.0.10.1
+ping 192.168.2.229
 ```
 
 You should receive replies. If not, check cabling and power.
@@ -39,15 +38,15 @@ You should receive replies. If not, check cabling and power.
 Rancher provides a web UI to monitor the Kubernetes cluster.
 
 1. Open a browser on any machine that can reach the **control plane VLAN** (10.0.10.0/24) – e.g., the Mini PC itself or a laptop connected to that network.
-2. Go to: `https://10.0.10.214:30443`
+2. Go to: `https://10.0.10.94:30443`
 3. Accept the self‑signed certificate warning (your browser will complain – proceed anyway).
 4. Log in with:
    - **Username:** `admin`
-   - **Password:** Retrieve it by running this command on the Ubuntu VM (or any machine with `kubectl` access to the cluster):
+   - **Password:** Retrieve it by running this command on `debian-master` (or any machine with `kubectl` access):
      ```bash
      kubectl get secret -n cattle-system bootstrap-secret -o go-template='{{.data.bootstrapPassword|base64decode}}'
      ```
-5. You should see the cluster dashboard with **5 nodes** (1 master, 4 workers) all showing `Ready`.
+5. You should see the cluster dashboard with **4 nodes** (1 master + 3 workers) all showing `Ready`.
 
 > **Troubleshooting:** If the password doesn’t work, the secret may have been consumed after first login. Use the password you set during Rancher initialisation (documented in your secure credentials file).
 
@@ -89,7 +88,7 @@ You should see a line similar to:
 ### Option C: Directly on worker1 (if SSH enabled)
 
 ```bash
-ssh pi@10.0.20.208
+ssh pi@10.0.20.138
 journalctl -u lora-bridge -f
 ```
 
@@ -108,7 +107,7 @@ Repeat step 4 with a different message, e.g., `Test 2 – encryption works`. Ver
 While a message is being sent, you can simulate a worker failure:
 
 1. In Rancher, go to **Nodes**.
-2. Identify a worker node (e.g., `worker2` at `10.0.20.207`).
+2. Identify a worker node (e.g., `worker2` at `10.0.20.150`).
 3. Physically unplug its power.
 4. Wait 30–60 seconds – any pods running on that node will be rescheduled to another worker.
 5. Send another message from the Cardputer – it should still be received (the LoRa gateway `worker1` is still up).
@@ -132,7 +131,7 @@ There is no strict shutdown order, but to be safe:
 
 | Symptom | Likely Fix |
 |---------|-------------|
-| Rancher page doesn’t load | Ensure Ubuntu VM is on `10.0.10.214` and NodePort `30443` is not blocked by firewall. |
+| Rancher page doesn’t load | Ensure `debian-master` (`10.0.10.94`) is reachable and NodePort `30443` is not blocked by the firewall. |
 | “No packets received” on worker1 | Check antenna connection; ensure LoRa HAT is seated; verify SPI enabled (`ls /dev/spidev*`). |
 | Message appears garbled | The bridge may be missing the encryption key – check `/home/pi/lora/key.b64` exists and has correct base64 key. |
 | `kubectl` command not found | Install kubectl or run from Mini PC master where it’s already installed. |

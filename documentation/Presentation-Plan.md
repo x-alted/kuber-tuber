@@ -141,8 +141,8 @@ The physical hardware and the logical network segmentation that isolates the con
 **Detailed information:**
 
 **Hardware inventory (shown in photo):**  
-- Mini PC (master node) – x86_64, 16GB RAM, Debian 13. Static IP: 10.0.10.201.  
-- Router Pi – Raspberry Pi 4 (2GB RAM) running Raspberry Pi OS Lite. Two VLAN‑tagged interfaces (`eth0.10`, `eth0.20`). Static IPs: 10.0.10.1 and 10.0.20.1.  
+- Mini PC (master node) – x86_64, 16GB RAM, Debian 13. Static IP: 10.0.10.94.  
+- Router Pi – Raspberry Pi 4 (2GB RAM) running Raspberry Pi OS Lite. Two VLAN‑tagged interfaces (`eth0.10`, `eth0.20`). Static IPs: 192.168.2.229 (external) / 10.0.10.1 and 10.0.20.1 (VLAN interfaces).  
 - Managed switch – NETGEAR GS305E, 5 ports, 802.1Q VLAN capable. Management IP: 10.0.0.2.  
 - Worker1 – Raspberry Pi 4 (4GB) with Waveshare SX1262 LoRa HAT. Static IP: 10.0.20.208.  
 - Worker2 – Raspberry Pi 4 (4GB). Static IP: 10.0.20.207.  
@@ -150,9 +150,9 @@ The physical hardware and the logical network segmentation that isolates the con
 - Cardputer – field device (not in the hub photo, shown separately or held).
 
 **VLAN configuration:**  
-- **VLAN 1 (management)** – 10.0.0.0/24. Used for switch management interface and router management.  
-- **VLAN 10 (control plane)** – 10.0.10.0/24. Contains the Mini PC master.  
-- **VLAN 20 (workers + LoRa)** – 10.0.20.0/24. Contains worker1, worker2, worker3.
+- **VLAN 1 (management)** – 10.0.0.0/24. Switch management (`10.0.1.58`) and router management.  
+- **VLAN 10 (control plane)** – 10.0.10.0/24. Contains `debian-master` (`10.0.10.94`).  
+- **VLAN 20 (workers + LoRa)** – 10.0.20.0/24. Contains worker1 (`10.0.20.138`), worker2 (`10.0.20.150`), worker3 (`10.0.20.63`).
 
 **Switch port assignments:**  
 - Port 1 (to router Pi): trunk port – tagged for VLANs 10 and 20.  
@@ -161,7 +161,7 @@ The physical hardware and the logical network segmentation that isolates the con
 
 **Router Pi role:**  
 - Routes between VLAN 10 and VLAN 20.  
-- Enforces firewall with `iptables` (detailed on Slide 7).  
+- Enforces firewall with `iptables`.  
 - Provides DHCP for both VLANs via `dnsmasq`.
 
 **Permitted traffic:**  

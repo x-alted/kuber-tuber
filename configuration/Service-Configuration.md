@@ -1,7 +1,9 @@
 # Service Configuration Notes
 
-**Last updated:** March 13, 2026  
+**Last updated:** April 8, 2026  
 **Maintained by:** Alex (documentation lead)
+
+> **Note:** The cluster was fully rebuilt on 2026-03-27 after migrating from `192.168.2.x` to the VLAN-segmented `10.0.x.x` address space. Sections below marked **(Historical)** document the original setup for reference. Current IP assignments are in `networking/Network-Topology.md`.
 
 Installation steps, configuration parameters, and customisation for the Kuber-Tuber project.
 
@@ -9,49 +11,48 @@ Installation steps, configuration parameters, and customisation for the Kuber-Tu
 
 ## K3s Cluster
 
-### Master Node (Mini PC – `debian-master`)
+### Master Node (Mini PC – `debian-master`) — Current
 
 - **Hostname:** debian-master  
-- **IP Address:** 192.168.2.201  
-- **Installation date:** March 13, 2026  
+- **IP Address:** `10.0.10.94` (VLAN 10)
+- **Rebuild date:** March 27, 2026 (after IP migration)
 - **Command used:**
 
-```markdown
+```bash
 curl -sfL https://get.k3s.io | sh -
 ```
 
 - **Node token location:** `/var/lib/rancher/k3s/server/node-token`  
 - **Kubeconfig:** `/etc/rancher/k3s/k3s.yaml`
 
-### Worker Nodes (Pis + Ubuntu VM)
+### Worker Nodes — Current
 
-All workers joined using the same template:
-```markdown
-curl -sfL https://get.k3s.io | K3S_URL=https://192.168.2.201:6443 K3S_TOKEN=<node-token> sh -
+All workers joined using:
+```bash
+curl -sfL https://get.k3s.io | K3S_URL=https://10.0.10.94:6443 K3S_TOKEN=<node-token> sh -
 ```
 
-#### Worker Join Dates
+| Node    | IP Address    | VLAN | Role                    | Join Date   |
+|---------|---------------|------|-------------------------|-------------|
+| worker1 | 10.0.20.138   | 20   | Worker + LoRa gateway   | March 27    |
+| worker2 | 10.0.20.150   | 20   | Worker                  | March 27    |
+| worker3 | 10.0.20.63    | 20   | Worker                  | March 27    |
 
-| Node          | IP Address   | Join Date   |
-|---------------|--------------|-------------|
-| kuberserver   | 192.168.2.214| March 13    |
-| worker1       | 192.168.2.208| March 13    |
-| worker2       | 192.168.2.207| March 13    |
-| worker3       | 192.168.2.202| March 13    |
+> The Ubuntu VM (`kuberserver`, formerly `10.0.10.94`) was removed from the cluster during the rebuild and is no longer a node.
 
-#### Node Labels (applied for organisation)
-```markdown
+#### Node Labels
+```bash
 kubectl label node worker1 hardware=pi role=worker lora-host=true
 kubectl label node worker2 hardware=pi role=worker
 kubectl label node worker3 hardware=pi role=worker
-kubectl label node kuberserver hardware=vm role=worker
 ```
 ---
 
 ## Rancher
 
-- **Host:** Ubuntu 22.04 VM (`192.168.2.214`) running on VirtualBox (bridged network).  
-- **Role:** K3s worker node and Rancher management server.
+- **Host:** Runs as a Helm deployment on the K3s cluster (pods on worker nodes). Access via NodePort on the master.
+- **URL:** `https://10.0.10.94:30443`
+- **Role:** Cluster management UI.
 
 ### Installation Steps (March 13, 2026)
 
@@ -60,7 +61,7 @@ kubectl label node kuberserver hardware=vm role=worker
 | 1 | Install Docker | `sudo apt update && sudo apt install docker.io -y`<br>`sudo systemctl enable --now docker` | `sudo systemctl status docker` |
 | 2 | Install kubectl | `curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"`<br>`chmod +x kubectl && sudo mv kubectl /usr/local/bin/` | `kubectl version --client` |
 | 3 | Install Helm | `curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 bash` | `helm version` |
-| 4 | Copy kubeconfig from mini PC | `scp user@192.168.2.201:/etc/rancher/k3s/k3s.yaml ~/k3s.yaml`<br>Edit file: change `server: https://127.0.0.1:6443` to `server: https://192.168.2.201:6443`<br>Set env: `export KUBECONFIG=~/k3s.yaml` (add to `~/.bashrc`) | `kubectl get nodes` lists all nodes |
+| 4 | Copy kubeconfig from mini PC | `scp user@10.0.10.94:/etc/rancher/k3s/k3s.yaml ~/k3s.yaml`<br>Edit file: change `server: https://127.0.0.1:6443` to `server: https://10.0.10.94:6443`<br>Set env: `export KUBECONFIG=~/k3s.yaml` (add to `~/.bashrc`) | `kubectl get nodes` lists all nodes |
 | 5 | Install cert-manager CRDs | `kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.crds.yaml` | No errors |
 | 6 | Add cert-manager Helm repo | `helm repo add jetstack https://charts.jetstack.io`<br>`helm repo update` | Repo added |
 | 7 | Install cert-manager | `helm install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --version v1.14.4` | `kubectl get pods -n cert-manager -w` (all running) |
@@ -68,7 +69,7 @@ kubectl label node kuberserver hardware=vm role=worker
 | 9 | Install Rancher | `helm install rancher rancher-latest/rancher --namespace cattle-system --create-namespace --set hostname=rancher.kuber-tuber.local --set replicas=1 --set bootstrapPassword=admin` | If name in use, clean up: `helm uninstall rancher -n cattle-system` and `kubectl delete secrets -n cattle-system -l owner=helm` |
 | 10 | Wait for Rancher rollout | `kubectl -n cattle-system rollout status deploy/rancher` | Success message |
 | 11 | Get Rancher service NodePort | `kubectl get svc -n cattle-system rancher` | Shows e.g. `443:30443/TCP` |
-| 12 | Access Rancher UI | `https://192.168.2.214:<NodePort>` | Login page loads |
+| 12 | Access Rancher UI | `https://10.0.10.94:<NodePort>` | Login page loads |
 | 13 | Retrieve admin password (if needed) | `kubectl get secret -n cattle-system bootstrap-secret -o go-template='{{.data.bootstrapPassword\|base64decode}}'`<br>Or for existing user: `kubectl get secret -n cattle-system user-95z65 -o jsonpath='{.data.password}' \| base64 -d` | Password displayed |
 | 14 | Log in to Rancher | Username `admin`, password from above | Dashboard accessible |
 | 15 | Import existing K3s cluster | In UI: **Import Existing** → name cluster (e.g. `k3s-cluster`) → run provided `kubectl` command on Ubuntu VM | Cluster appears active after a few minutes |
@@ -100,51 +101,32 @@ sudo tailscale up
 
 ## NETGEAR GS305E Switch Configuration
 
-- **IP Address:** `192.168.2.204` (management IP; set via web interface)
-- **VLANs:** Not used (all devices on default VLAN 1; no inter‑VLAN routing needed)
-- **Physical connections:**
-  - Port 1: Mini PC (`192.168.2.201`)
-  - Port 3: `worker1` (`192.168.2.208`)
-  - Port 4: `worker2` (`192.168.2.207`)
-  - Port 5: `worker3` (`192.168.2.202`) 
-- **Access:** Web interface at `http://192.168.2.204` (login: blank / password – changed to project password, stored securely)
+- **IP Address:** `10.0.1.58` (management IP; set via web interface)
+- **VLANs:** 802.1Q VLANs configured — VLAN 10 (control plane), VLAN 20 (workers). See `networking/Network-Topology.md` for full VLAN and port assignments.
+- **Physical connections (current):**
+  - Port 1: Router Pi (trunk — tagged VLANs 10 & 20)
+  - Port 2: Mini PC `debian-master` (access — untagged VLAN 10)
+  - Port 3: `worker1` (access — untagged VLAN 20)
+  - Port 4: `worker2` (access — untagged VLAN 20)
+  - Port 5: `worker3` (access — untagged VLAN 20)
+- **Access:** Web interface at `http://10.0.1.58` (login: stored securely)
 
 ---
 
-## LoRa Integration (In Progress)
+## LoRa Integration
 
-### LoRa HAT on `worker1`
+### LoRa HAT on `worker1` (`10.0.20.138`)
 
-- **Hardware:** Waveshare SX1262
-- **SPI enabled:** `dtparam=spi=on` in `/boot/config.txt`
-- **Python environment:** `/home/pi/lora-test` (virtual environment)
-- **Dependencies:** `pip install spidev RPi.GPIO` (basic), `rpi-lora` pending compatibility
-- **Current status:** Basic send/receive tests ongoing; driver verification in progress.
-- **Next:** Bridge to Matrix (see below).
+- **Hardware:** Waveshare E22-900T22S (SX1262, 915 MHz); communicates via UART at `/dev/ttyAMA0`, 9600 baud.
+- **Bridge script:** `LoRa/gateway/LoRa-Bridge.py` — run as systemd service `lora-bridge.service`.
+- **Dependencies:** `pip install pyserial pycryptodome requests` (see `LoRa/gateway/requirements.txt`).
+- **Bridge script path on device:** `/home/pi/lora-bridge/LoRa-Bridge.py` (or per deployment location).
+- **Logs:** `journalctl -u lora-bridge -f`
 
-### Cardputer (Field Node)
+### Cardputer ADV (Field Node)
 
-- **Device:** M5Stack Cardputer ADV + LoRa Cap 868
-- **Frequency:** 868 MHz (will be set to 915 MHz for region)
-- **Role:** Mobile client with GPS, keyboard, screen; communicates with `worker1` over LoRa.
-- **Development:** Pending completion of LoRa HAT driver and bridge.
-
-### LoRa-Matrix Bridge (Planned)
-
-- **Language:** Python
-- **Function:** Receive LoRa packets on `worker1`, forward to Dendrite (Matrix) server.
-- **Repository location:** (to be created)
-- **Encryption:** Basic payload encryption to be added by Nathan.
-
----
-
-## Future Services (Planned)
-
-| Service                | Purpose                               | Target Week |
-|------------------------|---------------------------------------|-------------|
-| Dendrite (Matrix)      | Decentralised chat server             | Week 4      |
-| LoRa-Matrix Bridge     | Connect LoRa messages to Matrix       | Week 4      |
-| WireGuard VPN          | Secure remote access (alternative to Tailscale) | Week 4 |
-| RBAC Policies          | Kubernetes security                   | Week 4      |
-| Network Policies       | Pod isolation                         | Week 4      |
-| 3‑tier app deployment  | Demo application on K3s               | Week 6      |
+- **Device:** M5Stack Cardputer ADV + CAP.KiRa-1262 LoRa cap
+- **Firmware:** C++ via PlatformIO — see `LoRa/cardputer/src/main.cpp` and `LoRa/cardputer/platformio.ini`.
+- **Frequency:** 915 MHz (North America).
+- **Encryption:** AES-256-CBC with PKCS#7 padding; IV prepended; sequence counter in NVS.
+- **Known issue (2026-04-08):** SPI pin mapping for CAP.KiRa-1262 unconfirmed — RadioLib error -2 (CHIP_NOT_FOUND). Awaiting correct pinout. See Issues-Log.md.

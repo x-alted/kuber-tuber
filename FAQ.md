@@ -57,7 +57,7 @@ The Cardputer ADV is a portable device with a built-in keyboard, screen, and ESP
 
 ### How do I program the Cardputer?
 
-The Cardputer firmware is written in C++ and compiled using PlatformIO. The source code is in [LoRa/KuberTuber-Cardputer.ino](LoRa/KuberTuber-Cardputer.ino). PlatformIO handles dependency management and flashing over USB. The firmware includes the LoRa driver, AES-256 encryption, and a simple text input interface.
+The Cardputer firmware is written in C++ and compiled using PlatformIO. The source code is in [`LoRa/cardputer/src/main.cpp`](LoRa/cardputer/src/main.cpp) with the build configuration in [`LoRa/cardputer/platformio.ini`](LoRa/cardputer/platformio.ini). PlatformIO handles dependency management and flashing over USB. The firmware includes the RadioLib LoRa driver, AES-256-CBC encryption via mbedTLS, and a simple text input interface.
 
 ### What does "encrypted LoRa" mean in practice?
 
@@ -69,8 +69,8 @@ LoRa radio transmissions are not encrypted by default. Anyone with a software-de
 
 The current network topology (see [Network Topology](Networking/Network-Topology.md)) consists of:
 
-- One MeLE Quieter 4C Mini PC running the K3s master node at `10.0.10.201`. The Mini PC has an Intel N100 processor, 16GB RAM, and 512GB storage.
-- Three Raspberry Pi 4 workers at `10.0.20.208`, `10.0.20.207`, `10.0.20.202`.
+- One Mini PC (Intel N100, 16GB RAM, Debian 13) running the K3s master node (`debian-master`) at `10.0.10.94`.
+- Three Raspberry Pi 4 (4GB) workers: `worker1` at `10.0.20.138` (LoRa gateway), `worker2` at `10.0.20.150`, `worker3` at `10.0.20.63`.
 - One Raspberry Pi 4 configured as a router with VLAN trunking.
 - One NETGEAR GS305E managed switch.
 - One Waveshare SX1262 LoRa HAT attached to `worker1`.
@@ -92,11 +92,11 @@ The managed switch port connected to the router is a trunk (tagged VLANs 10 and 
 
 ### How do I test that the LoRa HAT is working without the full cluster?
 
-Run the [LoRA Test.py](LoRa/LoRA-Test.py) script on `worker1`. It initialises the SPI bus and attempts to detect the SX1262 radio. If successful, it prints a confirmation. For send and receive tests, follow the [LoRa Tasks](LoRa/LoRa-Tasks.md) checklist.
+Run the [`LoRa/gateway/LoRA-Test.py`](LoRa/gateway/LoRA-Test.py) script on `worker1`. It initialises the serial port and attempts to communicate with the E22-900T22S module. If successful, it prints a confirmation. For full send/receive tests, see [`LoRa/docs/LoRa-Integration-Guide.md`](LoRa/docs/LoRa-Integration-Guide.md).
 
 ### Where is the AES encryption key stored and how is it accessed?
 
-The key is a 32-byte random string stored as a Kubernetes secret named `lora-aes-key` in the cluster. The receiver service on `worker1` mounts this secret as a volume or environment variable. The Cardputer firmware has the same key compiled in. The key is never transmitted over LoRa or any network.
+The key is a 32-byte value compiled directly into two places: the `LoRa-Bridge.py` gateway script on `worker1` (as a Python bytes literal), and the Cardputer firmware (`src/main.cpp`). Both must hold identical keys. The key is never transmitted over LoRa or any network. The receiver pod inside the cluster does not hold the key — it receives already-decrypted plaintext from the bridge via HTTP POST. Note: hardcoding the key is a known trade-off for this capstone scope; a production system would use a secrets manager or Kubernetes secret mounted as a file.
 
 ### What happens if the encryption key is changed?
 
@@ -110,7 +110,7 @@ Yes. The Python receiver scripts use the Adafruit RFM9x library, which supports 
 
 ### How do I access the Rancher dashboard?
 
-Open a browser to `https://10.0.10.201:30443`. Accept the self-signed certificate warning. Login with the username `admin`. The initial password can be retrieved from the bootstrap secret using the command documented in [Service Configuration](Service-Configuration.md). After first login, change the password.
+Open a browser to `https://10.0.10.94:30443`. Accept the self-signed certificate warning. Login with the username `admin`. The initial password can be retrieved from the bootstrap secret using the command documented in [Service Configuration](Service-Configuration.md). After first login, change the password.
 
 ### How do I check the status of all nodes from the command line?
 
@@ -142,7 +142,7 @@ All other inter-VLAN traffic is blocked. Workers cannot initiate connections to 
 
 ### Are the LoRa messages logged and auditable?
 
-Yes. The receiver service on `worker1` writes each decrypted message to the system log (`journalctl`) and to the Kubernetes pod logs. The logs include a timestamp and the plaintext message. You can view them with `journalctl -u lora-gateway` or `kubectl logs deployment/lora-receiver`. For long-term retention, you would need to configure log rotation or forward logs to a persistent volume.
+Yes. The receiver service on `worker1` writes each decrypted message to the system log (`journalctl`) and to the Kubernetes pod logs. The logs include a timestamp and the plaintext message. You can view them with `journalctl -u lora-bridge` or `kubectl logs deployment/lora-receiver`. For long-term retention, you would need to configure log rotation or forward logs to a persistent volume.
 
 ## Using the Project
 
@@ -154,7 +154,7 @@ Power on the Cardputer. The firmware presents a simple text input screen. Type y
 
 There are three methods:
 
-- On `worker1`: `journalctl -u lora-gateway -f` to follow the log.
+- On `worker1`: `journalctl -u lora-bridge -f` to follow the log.
 - Using `kubectl`: `kubectl logs -f deployment/lora-receiver` (if running as a deployment).
 - In the Rancher UI: navigate to the receiver pod and view its logs.
 
@@ -162,10 +162,10 @@ A web dashboard for messages was not implemented but could be added.
 
 ### How do I add a new Raspberry Pi as an additional worker?
 
-Flash Raspberry Pi OS Lite to an SD card. Set a static IP address in the worker VLAN (`10.0.20.0/24`). Enable SSH. On the master node, retrieve the K3s token from `/var/lib/rancher/k3s/server/node-token`. On the new Pi, run:
+Flash Raspberry Pi OS Lite to an SD card. Set a static IP address in the worker VLAN (`10.0.20.0/24`). Enable SSH. On `debian-master`, retrieve the K3s token from `/var/lib/rancher/k3s/server/node-token`. On the new Pi, run:
 
 ```
-curl -sfL https://get.k3s.io | K3S_URL=https://10.0.10.201:6443 K3S_TOKEN=<token> sh -
+curl -sfL https://get.k3s.io | K3S_URL=https://10.0.10.94:6443 K3S_TOKEN=<token> sh -
 ```
 
 The node will appear in `kubectl get nodes` within a minute. Then apply any necessary labels and security hardening.
@@ -182,11 +182,11 @@ Run `ls /dev/spidev*`. You should see `spidev0.0` and `spidev0.1`. If not, SPI i
 
 ### The Rancher UI shows "cluster unreachable" after import.
 
-Ensure the machine running Rancher (the master node itself) can reach the K3s API on port 6443. Check that the kubeconfig file has the correct server IP (`https://10.0.10.201:6443`). Also verify that no firewall is blocking the connection. If the cluster was imported but later the IP changed, you may need to re-import.
+Ensure the machine running Rancher (the master node itself) can reach the K3s API on port 6443. Check that the kubeconfig file has the correct server IP (`https://10.0.10.94:6443`). Also verify that no firewall is blocking the connection. If the cluster was imported but later the IP changed, you may need to re-import.
 
 ### A worker node shows NotReady after a reboot.
 
-Check that the node received its static IP address. Verify that the K3s service started: `sudo systemctl status k3s-agent`. Look for errors in the logs: `journalctl -u k3s-agent -f`. The most common cause is that the node cannot reach the master on port 6443. Test connectivity with `ping 10.0.10.201` and `telnet 10.0.10.201 6443`.
+Check that the node received its static IP address. Verify that the K3s service started: `sudo systemctl status k3s-agent`. Look for errors in the logs: `journalctl -u k3s-agent -f`. The most common cause is that the node cannot reach the master on port 6443. Test connectivity with `ping 10.0.10.94` and `telnet 10.0.10.94 6443`.
 
 ### How do I completely reset the cluster and start over?
 
@@ -197,21 +197,16 @@ On the master node: `sudo /usr/local/bin/k3s-uninstall.sh`. On each worker: `sud
 ### What is the purpose of each file in the repository?
 
 A quick reference:
-## Project Documentation
-
-### What is the purpose of each file in the repository?
-
-A quick reference:
 
 - [`README.md`](README.md): Overview, architecture, and quick start.
-- [`Quick-Start-Guide.md`](Quick-Start-Guide.md): Step-by-step order to set up the system.
+- [`Quick-Start-Guide.md`](Quick-Start-Guide.md): Step-by-step guide to power up and test the system.
 - [`FAQ.md`](FAQ.md): This document.
-- [`Service-Configuration.md`](Service-Configuration.md): Detailed commands for K3s, Rancher, and services.
-- [`Issues-Log.md`](Issues-Log.md): Record of problems encountered and resolutions.
-- [`Test-Results.md`](Test-Results.md): Matrix of tests performed and their outcomes.
-- [`Networking/Network-Topology.md`](Networking/Network-Topology.md): IP assignments, VLANs, and switch configuration.
-- [`Documentation/Hardware-BOM.md`](Documentation/Hardware-BOM.md): Bill of materials with part numbers and costs.
-- [`Documentation/Use-Cases.md`](Documentation/Use-Cases.md): Real-world scenarios where the system provides value.
-- [`checklists/`](checklists/): Task lists for setup, hardening, Kubernetes, LoRa, and networking.
-- [`LoRa/`](LoRa/): Python scripts, Cardputer firmware, and LoRa-specific documentation.
-- [`Security/`](Security/): Risk assessment, threat model, and hardening tasks.
+- [`configuration/Service-Configuration.md`](configuration/Service-Configuration.md): Detailed commands for K3s, Rancher, and services.
+- [`configuration/Issues-Log.md`](configuration/Issues-Log.md): Record of problems encountered and resolutions.
+- [`configuration/Test-Results.md`](configuration/Test-Results.md): Matrix of tests performed and their outcomes.
+- [`configuration/System-Architecture.md`](configuration/System-Architecture.md): Design document, component deep-dives, and trade-offs.
+- [`networking/Network-Topology.md`](networking/Network-Topology.md): IP assignments, VLANs, and switch configuration.
+- [`documentation/Hardware-BOM.md`](documentation/Hardware-BOM.md): Bill of materials with part numbers and costs.
+- [`documentation/Use-Cases.md`](documentation/Use-Cases.md): Real-world scenarios where the system provides value.
+- [`LoRa/`](LoRa/): Gateway bridge, Cardputer firmware (PlatformIO/C++), and LoRa documentation.
+- [`security/`](security/): Risk assessment, threat model, and hardening checklist.

@@ -3,7 +3,7 @@
 
 **An encrypted LoRa‑integrated Kubernetes cluster for off‑grid, long-range alerts and communications.**
 
-![K3s](https://img.shields.io/badge/K3s-v1.34.5-blue)
+![K3s](https://img.shields.io/badge/K3s-v1.32.5-blue)
 ![Rancher](https://img.shields.io/badge/Rancher-v2.9-blue)
 ![LoRa](https://img.shields.io/badge/LoRa-915MHz-green)
 ![License](https://img.shields.io/badge/License-MIT-lightgrey)
@@ -15,7 +15,7 @@
 Kuber‑Tuber is a self‑contained communication hub that combines a lightweight Kubernetes cluster (K3s) with an encrypted LoRa mesh network. It provides resilient, offline messaging and data collection where traditional networks are unavailable, unreliable, or insecure – such as disaster zones, remote industrial sites, or temporary event venues.
 
 The system consists of:
-- **5‑node K3s cluster** (1 master, 4 workers) running on a mix of Raspberry Pi 4 and a MeLE Mini PC.
+- **4‑node K3s cluster** (1 master, 3 workers) running on a mix of Raspberry Pi 4 and a Mini PC.
 - **VLAN‑segmented network** with a dedicated Raspberry Pi router for isolation and security.
 - **LoRa gateway** (Waveshare SX1262 HAT) attached to `worker1` for receiving encrypted messages.
 - **Cardputer ADV** field node (with separate LoRa module) that sends AES‑256 encrypted messages.
@@ -33,35 +33,46 @@ The system consists of:
 
 ```
 kuber-tuber/
-├── checklists/
-│   ├── Setup-&-Testing-Checklist.md
-│   ├── hardening+security-configuration-tasks.md
+├── configuration/
+│   ├── Issues-Log.md
 │   ├── kubernetes-configuration-tasks.md
-│   ├── lora-configuration-tasks.md
-│   └── networking-configuration-tasks.md
-├── Documentation/
+│   ├── Service-Configuration.md
+│   ├── System-Architecture.md
+│   └── Test-Results.md
+├── documentation/
 │   ├── Hardware-BOM.md
+│   ├── Presentation-Plan.md
+│   ├── Setup-&-Testing-Checklist.md
 │   └── Use-Cases.md
 ├── LoRa/
-│   ├── KuberTuber-Cardputer.ino
-│   ├── decrypt_utils.py
-│   ├── LoRa-Bridge.py
-│   ├── receiver-service.yaml
-│   ├── test_decryption.py
-│   ├── LoRA-Test.py
-│   └── LoRa-Tasks.md
-├── Networking/
-│   ├── Network-Topology.md
-│   └── Networking-Tasks.md
-├── Security/
+│   ├── cardputer/
+│   │   ├── Cardputer-Flashing-Guide.md
+│   │   ├── platformio.ini
+│   │   └── src/main.cpp
+│   ├── docs/
+│   │   ├── API-&-Interface.md
+│   │   └── LoRa-Integration-Guide.md
+│   ├── gateway/
+│   │   ├── configure_e22.py
+│   │   ├── decrypt_utils.py
+│   │   ├── LoRa-Bridge.py
+│   │   ├── lora-bridge.service
+│   │   ├── LoRA-Test.py
+│   │   ├── requirements.txt
+│   │   └── test_decryption.py
+│   └── kubernetes/
+│       ├── lora-receiver.yaml
+│       └── receiver_service.py
+├── networking/
+│   ├── networking-configuration-tasks.md
+│   └── Network-Topology.md
+├── security/
 │   ├── Risk-Assessment.md
-│   ├── Threat-Model.md
-│   └── Hardening-Tasks.md
-├── Issues-Log.md
-├── Service-Configuration.md
-├── Test-Results.md
-├── Quick-Start-Guide.md
+│   ├── Security-&-Hardening-Checklist.md
+│   └── Threat-Model.md
 ├── FAQ.md
+├── LICENSE
+├── Quick-Start-Guide.md
 └── README.md (this file)
 ```
 
@@ -70,15 +81,14 @@ kuber-tuber/
 | File | Description |
 |------|-------------|
 | [Quick-Start-Guide.md](Quick-Start-Guide.md) | Step‑by‑step order to set up the system. |
-| [Service-Configuration.md](Service-Configuration.md) | Detailed commands for K3s, Rancher, and services. |
-| [Issues-Log.md](Issues-Log.md) | Running log of problems encountered and resolutions. |
-| [Test-Results.md](Test-Results.md) | Connectivity matrix, failover tests, LoRa results. |
+| [configuration/Service-Configuration.md](configuration/Service-Configuration.md) | Detailed commands for K3s, Rancher, and services. |
+| [configuration/Issues-Log.md](configuration/Issues-Log.md) | Running log of problems encountered and resolutions. |
+| [configuration/Test-Results.md](configuration/Test-Results.md) | Connectivity matrix, failover tests, LoRa results. |
 | [FAQ.md](FAQ.md) | Frequently asked questions about the project. |
-| [Documentation/Use-Cases.md](Documentation/Use-Cases.md) | Realistic applications for the cluster. |
-| [Networking/Network-Topology.md](Networking/Network-Topology.md) | IP assignments, VLANs, and network diagrams. |
-| [checklists/](checklists/) | Task lists for setup, hardening, Kubernetes, LoRa, and networking. |
+| [documentation/Use-Cases.md](documentation/Use-Cases.md) | Realistic applications for the cluster. |
+| [networking/Network-Topology.md](networking/Network-Topology.md) | IP assignments, VLANs, and network diagrams. |
 | [LoRa/](LoRa/) | Python scripts, Cardputer firmware (PlatformIO), and LoRa documentation. |
-| [Security/](Security/) | Risk assessment, threat model, and hardening tasks. |
+| [security/](security/) | Risk assessment, threat model, and hardening tasks. |
 
 ---
 
@@ -116,9 +126,9 @@ A **Raspberry Pi router** routes between VLANs and enforces firewall rules (e.g.
 
 | Device                          | Role                                    | Quantity |
 |---------------------------------|-----------------------------------------|----------|
-| MeLE Quieter 4C Mini PC (N100, 16GB RAM, 512GB SSD) | K3s master + Rancher | 1        |
-| Raspberry Pi 4 (4GB)            | Workers (three) + LoRa gateway (one)    | 4        |
-| Raspberry Pi 4 (4GB)            | Dedicated router                        | 1        |
+| Mini PC (Intel N100, 16GB RAM, 128GB+ SSD, Debian 13) | K3s master (`debian-master`, `10.0.10.94`) | 1 |
+| Raspberry Pi 4 (4GB)            | K3s workers × 3 + LoRa gateway on worker1 | 3      |
+| Raspberry Pi 4 (2GB)            | Dedicated router (`RaspRouter`, `192.168.2.229`) | 1 |
 | NETGEAR GS305E                  | Managed switch (VLAN support)           | 1        |
 | Waveshare SX1262 HAT            | LoRa radio attached to `worker1`        | 1        |
 | Cardputer ADV                   | Field node base unit                    | 1        |
@@ -144,7 +154,7 @@ A **Raspberry Pi router** routes between VLANs and enforces firewall rules (e.g.
    All nodes should show `Ready`.
 
 2. **Access Rancher UI**  
-   Open `https://10.0.10.201:30443` (accept self‑signed certificate).  
+   Open `https://10.0.10.94:30443` (accept self‑signed certificate).  
    Login with username `admin`. Retrieve the initial bootstrap password from the Kubernetes secret:
    ```bash
    kubectl get secret -n cattle-system bootstrap-secret -o go-template='{{.data.bootstrapPassword|base64decode}}'
@@ -152,9 +162,9 @@ A **Raspberry Pi router** routes between VLANs and enforces firewall rules (e.g.
 
 3. **Send a test LoRa message**  
    - On the Cardputer, type a message and press Send.
-   - On `worker1`, tail the LoRa receiver logs:
+   - On `worker1`, tail the LoRa bridge logs:
      ```bash
-     journalctl -u lora-gateway -f
+     journalctl -u lora-bridge -f
      ```
    - The decrypted message should appear in the logs.
 

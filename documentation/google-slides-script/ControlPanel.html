@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Roboto Mono', 'Courier New', monospace;
+      background: #0A0E1A;
+      color: #E0E0E0;
+      padding: 14px;
+      font-size: 11px;
+    }
+
+    .brand {
+      color: #00ACC1;
+      font-size: 12px;
+      font-weight: bold;
+      letter-spacing: 1.5px;
+      margin-bottom: 2px;
+    }
+    .sub {
+      color: #455A64;
+      font-size: 9px;
+      margin-bottom: 14px;
+    }
+
+    .status-box {
+      background: #0D1117;
+      border: 1px solid #1F2937;
+      border-radius: 3px;
+      padding: 8px 10px;
+      margin-bottom: 14px;
+    }
+    .status-label {
+      color: #607D8B;
+      font-size: 9px;
+      margin-bottom: 3px;
+    }
+    #phaseText {
+      color: #4CAF50;
+      font-size: 10px;
+      font-weight: bold;
+    }
+
+    .section-label {
+      color: #37474F;
+      font-size: 9px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 9px 12px;
+      margin-bottom: 7px;
+      border: none;
+      border-radius: 3px;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: bold;
+      cursor: pointer;
+      color: #FFFFFF;
+      text-align: left;
+      letter-spacing: 0.3px;
+      transition: opacity 0.1s;
+    }
+    .btn:hover   { opacity: 0.85; }
+    .btn:active  { opacity: 0.65; }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    .btn-blue  { background: #1565C0; }
+    .btn-red   { background: #B71C1C; }
+    .btn-green { background: #2E7D32; }
+    .btn-gray  { background: #37474F; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #1F2937;
+      margin: 12px 0;
+    }
+
+    #feedback {
+      min-height: 16px;
+      font-size: 10px;
+      color: #00ACC1;
+      margin-top: 4px;
+    }
+    #feedback.error { color: #EF5350; }
+
+    .step-indicator {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .step {
+      flex: 1;
+      height: 4px;
+      background: #1F2937;
+      border-radius: 2px;
+      transition: background 0.3s;
+    }
+    .step.done { background: #4CAF50; }
+    .step.active { background: #00ACC1; }
+
+    .note {
+      font-size: 9px;
+      color: #37474F;
+      line-height: 1.6;
+      margin-top: 10px;
+    }
+
+    .cluster-info {
+      background: #0D1117;
+      border: 1px solid #1F2937;
+      border-radius: 3px;
+      padding: 7px 10px;
+      margin-top: 12px;
+      font-size: 8.5px;
+      color: #546E7A;
+      line-height: 1.8;
+    }
+    .cluster-info .key { color: #00ACC1; }
+  </style>
+</head>
+<body>
+
+  <div class="brand">&#x26A1; KUBER-TUBER</div>
+  <div class="sub">Live Demo Control Panel</div>
+
+  <!-- Progress steps -->
+  <div class="step-indicator">
+    <div class="step" id="step1"></div>
+    <div class="step" id="step2"></div>
+    <div class="step" id="step3"></div>
+  </div>
+
+  <!-- Current phase display -->
+  <div class="status-box">
+    <div class="status-label">CURRENT PHASE</div>
+    <div id="phaseText">Ready &#x2014; run Setup first, then &#x2460;</div>
+  </div>
+
+  <!-- Demo sequence buttons -->
+  <div class="section-label">Demo Sequence</div>
+
+  <button class="btn btn-blue"  id="btnStatus" onclick="run('showNodeStatus',      1, '&#x2461; Node status retrieved &#x2014; all nodes Ready')">
+    &#x25B6;&nbsp; &#x2461; Check Node Status
+  </button>
+  <button class="btn btn-red"   id="btnFail"   onclick="run('simulateNodeFailure', 2, '&#x2462; Failure simulation complete &#x2014; worker2 offline')">
+    &#x26A1;&nbsp; &#x2462; Simulate Node Failure
+  </button>
+  <button class="btn btn-green" id="btnHeal"   onclick="run('watchSelfHealing',   3, '&#x2463; Self-healing complete &#x2014; 2 pods rescheduled')">
+    &#x2736;&nbsp; &#x2463; Watch Self-Healing
+  </button>
+
+  <hr class="divider">
+
+  <button class="btn btn-gray"  id="btnReset"  onclick="run('resetDemo', 0, 'Demo reset &#x2014; ready to run again')">
+    &#x21BA;&nbsp; Reset Demo
+  </button>
+
+  <div id="feedback"></div>
+
+  <!-- Static cluster reference -->
+  <div class="cluster-info">
+    <span class="key">master </span> debian-master  10.0.10.94<br>
+    <span class="key">worker1</span> LoRa node      10.0.20.138<br>
+    <span class="key">worker2</span> [demo target]  10.0.20.150<br>
+    <span class="key">worker3</span> worker         10.0.20.63<br>
+    <span class="key">version</span> K3s v1.32.5+k3s1
+  </div>
+
+  <div class="note">
+    Run in order: &#x2461; &#x2192; &#x2462; &#x2192; &#x2463;<br>
+    Each step updates the slide in real-time.<br>
+    Steps &#x2462; and &#x2463; take ~8&#x2013;15 seconds.<br>
+    Reset returns to the initial state.
+  </div>
+
+  <script>
+    var currentStep = 0;
+
+    function run(fnName, stepNum, successMsg) {
+      setAllDisabled(true);
+      setFeedback('Running\u2026', false);
+
+      google.script.run
+        .withSuccessHandler(function () {
+          currentStep = stepNum;
+          updateSteps();
+          document.getElementById('phaseText').innerHTML = successMsg;
+          setFeedback('\u2713 Complete', false);
+          setAllDisabled(false);
+        })
+        .withFailureHandler(function (err) {
+          setFeedback('\u2716 ' + err.message, true);
+          setAllDisabled(false);
+        })
+        [fnName]();
+    }
+
+    function updateSteps() {
+      for (var i = 1; i <= 3; i++) {
+        var el = document.getElementById('step' + i);
+        el.className = 'step' + (i < currentStep ? ' done' : (i === currentStep ? ' active' : ''));
+      }
+    }
+
+    function setAllDisabled(disabled) {
+      ['btnStatus', 'btnFail', 'btnHeal', 'btnReset'].forEach(function (id) {
+        document.getElementById(id).disabled = disabled;
+      });
+    }
+
+    function setFeedback(msg, isError) {
+      var el = document.getElementById('feedback');
+      el.innerHTML = msg;
+      el.className = isError ? 'error' : '';
+    }
+  </script>
+</body>
+</html>
