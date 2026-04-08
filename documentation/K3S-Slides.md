@@ -1,9 +1,3 @@
-This is an excellent capstone project, and the live demo is the perfect way to showcase the "magic" of Kubernetes. The key is to translate abstract orchestration concepts directly into your specific hardware (the Mini PC master and the three Raspberry Pi workers).
-
-Here is a slide-by-slide outline and content plan for Nathan's Kubernetes section, designed to integrate seamlessly with the Google Slides scripts you've already built.
-
----
-
 ### Slide Title: What is Kubernetes? (The "Why")
 
 **Visual Concept:** A simple, clean slide. On the left, a chaotic stack of servers with cables everywhere. On the right, a single, orderly control panel icon. An arrow points from left to right.
