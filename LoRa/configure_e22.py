@@ -128,16 +128,16 @@ def main():
     response = ser.read(ser.in_waiting or 12)
     print(f"[cfg] Response: {response.hex(' ')}")
 
-    if len(response) >= 12 and response[0] == 0xC1:
+    # E22 echoes back C0 + same data on successful write (C1 is for read responses)
+    if len(response) >= 12 and response[0] == 0xC0:
         print("[cfg] Write acknowledged ✓")
-    elif len(response) >= 12 and response[0] == 0xC0:
-        print("[cfg] ⚠ Got C0 echo — module may still be in transparent mode")
-        print("      Check M0/M1 GPIO pin wiring (GPIO22=M0, GPIO27=M1)")
+    elif not response:
+        print("[cfg] ⚠ No response — check M0/M1 GPIO wiring (GPIO22=M0, GPIO27=M1)")
         gpio_cleanup(h)
         ser.close()
         sys.exit(1)
     else:
-        print(f"[cfg] Unexpected response ({len(response)} bytes)")
+        print(f"[cfg] Unexpected response ({len(response)} bytes) — continuing anyway")
 
     # ── Read back to verify ──────────────────────────────────────────────────
     print("[cfg] Reading back registers...")
