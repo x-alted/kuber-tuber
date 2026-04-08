@@ -1,43 +1,44 @@
 #!/usr/bin/env python3
 """
 Kuber-Tuber LoRa Bridge Service
-Runs on worker1 (Raspberry Pi 4 + LoRa HAT)
+Runs on worker1 (Raspberry Pi 4 + Waveshare E22-900T22S LoRa HAT)
 
-Function:
-    - Listen for LoRa packets (915 MHz)
-    - Decrypt using AES-256-CBC (shared key)
-    - Extract sequence number and message
-    - Reject packets with seq <= last_seq (replay protection)
-    - Forward accepted messages to the internal Kubernetes receiver service (HTTP POST)
-    - Send an ACK packet back to the Cardputer
+Communication path:
+    Cardputer (SX1262 via RadioLib) --> LoRa RF --> E22-900T22S HAT --> UART /dev/ttyAMA0 --> this script
 
-Dependencies (install via pip):
-    adafruit-circuitpython-rfm9x
-    pycryptodome (or cryptography)
-    requests
-    (RPi.GPIO, spidev are usually pre-installed on Raspberry Pi OS)
+The E22 HAT operates in transparent mode (jumper B, M0=M1=0):
+    - Anything written to UART is transmitted via LoRa.
+    - Any received LoRa packet is output to UART.
+
+LoRa parameters must match the Cardputer firmware exactly:
+    Frequency : 915.0 MHz    (CHAN = 65 on E22-900T22S, freq = 850.125 + CH)
+    Bandwidth : 125 kHz      (BW_125 in E22 SPED register)
+    Spreading : SF9          (air_speed closest match: 4.8 kbps)
+    Coding rate: 4/7         (CR_4_7 – configure E22 if default CR doesn't match)
+
+    To reconfigure the E22, run configure_e22.py once, then restart this service.
+
+Dependencies:
+    pip install pyserial pycryptodome requests --break-system-packages
 """
 
 import time
-import board
-import busio
-import digitalio
-import adafruit_rfm9x
+import serial
 import base64
-import json
 import requests
 from Crypto.Cipher import AES
 
 # ==================== CONFIGURATION ====================
-# These values must match the Cardputer firmware
 
-RADIO_FREQ_MHZ = 915.0          # LoRa frequency (North America)
-CS_PIN = board.CE0              # Chip select pin (GPIO8, CE0)
-RESET_PIN = board.D25           # Reset pin for LoRa HAT
-SPI_BUS = busio.SPI(board.SCK, MOSI=board.MOSI, MISO=board.MISO)
+SERIAL_PORT  = '/dev/ttyAMA0'
+BAUD_RATE    = 9600
 
-# AES-256 key (32 bytes) – same as in the Cardputer firmware
-# In production, read this from a file or environment variable, not hardcoded.
+# Kubernetes receiver service (ClusterIP, only reachable from within the cluster)
+RECEIVER_URL = "http://lora-receiver.lora-demo.svc.cluster.local:8080/api/v1/messages"
+
+# AES-256 key — must be identical to the key in the Cardputer firmware.
+# In production, load this from the Kubernetes secret mounted at /etc/lora/aes_key.
+# See security/lora-aes-key-secret.yaml for how to create the secret.
 AES_KEY = bytes([
     0x60, 0x3d, 0xeb, 0x10, 0x15, 0xca, 0x71, 0xbe,
     0x2b, 0x73, 0xae, 0xf0, 0x85, 0x7d, 0x77, 0x81,
@@ -45,174 +46,174 @@ AES_KEY = bytes([
     0x2d, 0x98, 0x10, 0xa3, 0x09, 0x14, 0xdf, 0xf4
 ])
 
-# Receiver service endpoint inside the Kubernetes cluster
-# This is a ClusterIP service, only reachable from within the cluster.
-RECEIVER_URL = "http://lora-receiver.lora-demo.svc.cluster.local:8080/api/v1/messages"
-
-# Replay protection: keep track of the last accepted sequence number per source
-# For now, only one source ("cardputer") – can be extended to multiple devices.
+# Per-source replay protection: maps source name -> last accepted seq
 last_seq = {"cardputer": 0}
 
-# ==================== DECRYPTION FUNCTION ====================
+# How long to wait for silence after the first byte before treating the
+# burst as a complete packet (seconds).
+PACKET_GAP_S = 0.2
 
-def decrypt_payload(b64_ciphertext, key_bytes):
+# ==================== SERIAL INIT ====================
+
+ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=0.1)
+ser.flushInput()
+print(f"[bridge] Listening on {SERIAL_PORT} @ {BAUD_RATE} baud")
+
+# ==================== DECRYPTION ====================
+
+def decrypt_payload(b64_ciphertext: str, key_bytes: bytes):
     """
     Decrypt a Base64-encoded LoRa packet.
-    
-    Packet format (produced by Cardputer firmware):
+
+    Packet format (from Cardputer firmware):
         Base64( [16-byte IV] + [AES-256-CBC ciphertext] )
-    
-    After decryption, the plaintext is: "<seq>|<message>"
-    
-    Args:
-        b64_ciphertext (str): Base64 string received over LoRa.
-        key_bytes (bytes): 32-byte AES key.
-    
+
+    Plaintext after decryption: "<seq>|<message>"
+
     Returns:
-        tuple: (seq, message) if successful, or (None, error_reason) on failure.
+        ((seq, message), None)  on success
+        (None, error_string)    on failure
     """
     try:
-        # Step 1: Decode from Base64 to raw bytes
         raw = base64.b64decode(b64_ciphertext)
     except Exception as e:
         return None, f"Base64 decode error: {e}"
-    
-    # Minimum length: 16 bytes IV + at least 1 byte ciphertext (but realistically more)
-    if len(raw) < 16:
-        return None, "Packet too short (missing IV)"
-    
-    # Step 2: Split IV (first 16 bytes) and ciphertext (remainder)
-    iv = raw[:16]
+
+    if len(raw) < 17:   # 16-byte IV + at least 1 byte
+        return None, f"Packet too short ({len(raw)} bytes)"
+
+    iv         = raw[:16]
     ciphertext = raw[16:]
-    
-    # Step 3: Create AES-CBC cipher object with the key and IV
-    cipher = AES.new(key_bytes, AES.MODE_CBC, iv)
-    
-    # Step 4: Decrypt
+
     try:
+        cipher    = AES.new(key_bytes, AES.MODE_CBC, iv)
         decrypted = cipher.decrypt(ciphertext)
     except Exception as e:
-        return None, f"Decryption failed: {e}"
-    
-    # Step 5: Remove PKCS#7 padding
-    # The last byte of the plaintext tells how many padding bytes were added.
+        return None, f"AES decrypt failed: {e}"
+
+    # PKCS#7 unpadding
     pad_len = decrypted[-1]
     if pad_len < 1 or pad_len > 16:
-        return None, f"Invalid padding length: {pad_len}"
-    
-    # Verify that all padding bytes have the same value (integrity check)
+        return None, f"Bad padding length: {pad_len}"
     for i in range(1, pad_len + 1):
         if decrypted[-i] != pad_len:
-            return None, "Corrupted padding"
-    
-    # Strip padding bytes
-    plaintext_bytes = decrypted[:-pad_len]
-    
-    # Step 6: Convert bytes to string (UTF-8)
+            return None, "Corrupted PKCS#7 padding"
+
     try:
-        plaintext = plaintext_bytes.decode('utf-8')
+        plaintext = decrypted[:-pad_len].decode('utf-8')
     except UnicodeDecodeError:
-        return None, "Invalid UTF-8 after decryption"
-    
-    # Step 7: Extract sequence number and message (format: "seq|message")
-    parts = plaintext.split('|', 1)   # Split only at the first '|'
+        return None, "Non-UTF-8 plaintext after decryption"
+
+    parts = plaintext.split('|', 1)
     if len(parts) != 2:
-        return None, f"Invalid plaintext format (expected 'seq|msg'): {plaintext}"
-    
+        return None, f"Missing '|' separator in plaintext: {plaintext!r}"
+
     seq_str, message = parts
     try:
         seq = int(seq_str)
     except ValueError:
-        return None, f"Sequence number not an integer: {seq_str}"
-    
+        return None, f"Non-integer seq field: {seq_str!r}"
+
     return (seq, message), None
 
-# ==================== ACK SENDING FUNCTION ====================
+# ==================== ACK ====================
 
-def send_ack(seq):
+def send_ack(seq: int):
     """
-    Send an acknowledgment packet back to the Cardputer.
-    The ACK format is simply "ACK:<seq>" (plain text, no encryption).
-    
-    Args:
-        seq (int): The sequence number being acknowledged.
+    Send ACK:<seq> back to the Cardputer via UART → LoRa.
+    The Cardputer expects the exact string "ACK:<seq>" within 1500 ms.
     """
-    ack_message = f"ACK:{seq}"
-    # rfm9x.send() expects bytes
-    rfm9x.send(ack_message.encode())
-    print(f"Sent ACK for seq {seq}")
+    ack = f"ACK:{seq}".encode()
+    ser.write(ack)
+    ser.flush()
+    print(f"[bridge]   ACK:{seq} sent")
 
-# ==================== MAIN RECEIVE LOOP ====================
+# ==================== PACKET READER ====================
 
-# Initialize SPI bus
-spi = busio.SPI(board.SCK, board.MOSI, board.MISO)
+def read_packet(poll_timeout: float = 5.0) -> bytes | None:
+    """
+    Block until a LoRa packet arrives on UART or poll_timeout expires.
 
-# Initialize the LoRa radio object
-cs = digitalio.DigitalInOut(CS_PIN)
-reset = digitalio.DigitalInOut(RESET_PIN)
-rfm9x = adafruit_rfm9x.RFM9x(spi, cs, reset, RADIO_FREQ_MHZ)
+    In E22 transparent mode the module bursts out the received LoRa
+    packet as raw bytes with no framing. We collect bytes until 200 ms
+    of silence signals end-of-packet.
 
-# Optional: set transmit power (max 23 dBm)
-rfm9x.tx_power = 23
+    Returns:
+        bytes   — raw packet contents
+        None    — nothing received within poll_timeout
+    """
+    buf          = b""
+    deadline     = time.monotonic() + poll_timeout
+    last_rx_time = None
 
-print("LoRa bridge started. Waiting for packets...")
+    while time.monotonic() < deadline:
+        waiting = ser.in_waiting
+        if waiting:
+            buf         += ser.read(waiting)
+            last_rx_time = time.monotonic()
+        elif last_rx_time and (time.monotonic() - last_rx_time) >= PACKET_GAP_S:
+            break   # silence after data → packet complete
+        else:
+            time.sleep(0.01)
+
+    return buf if buf else None
+
+# ==================== MAIN LOOP ====================
+
+print("[bridge] Waiting for packets...")
 
 while True:
-    # Non-blocking receive with a timeout of 5 seconds
-    # Returns None if no packet received within that time.
-    packet = rfm9x.receive(timeout=5.0)
-    
-    if packet is None:
-        # No packet – just continue the loop
+    raw_bytes = read_packet(poll_timeout=5.0)
+
+    if raw_bytes is None:
         continue
-    
-    # packet is a bytes object; decode to string (assuming UTF-8)
+
     try:
-        raw_str = packet.decode('utf-8').strip()
+        raw_str = raw_bytes.decode('utf-8').strip()
     except UnicodeDecodeError:
-        print("Received non-UTF8 packet, ignoring")
+        print(f"[bridge] Non-UTF8 packet ({len(raw_bytes)} bytes), discarding")
         continue
-    
-    print(f"Received: {raw_str}")
-    
-    # Decrypt and parse
+
+    if not raw_str:
+        continue
+
+    preview = raw_str[:60] + ('...' if len(raw_str) > 60 else '')
+    print(f"[bridge] RX ({len(raw_str)} chars): {preview}")
+
     result, error = decrypt_payload(raw_str, AES_KEY)
     if result is None:
-        print(f"Decryption failed: {error}")
+        print(f"[bridge]   Decrypt failed: {error}")
         continue
-    
+
     seq, message = result
-    source = "cardputer"   # could be extended to multiple devices
-    
-    # Replay protection: only accept if seq > last seen sequence
+    source       = "cardputer"
+
+    # Replay protection
     if seq <= last_seq.get(source, 0):
-        print(f"Replay attack detected! seq={seq} <= last_seq={last_seq[source]}. Ignoring.")
+        print(f"[bridge]   Replay! seq={seq} <= last={last_seq[source]}, dropped")
         continue
-    
-    # Update last accepted sequence
+
     last_seq[source] = seq
-    
-    # Build JSON payload for the receiver service
+    print(f"[bridge]   seq={seq} msg={message!r}")
+
+    # Forward to Kubernetes receiver
     payload = {
-        "seq": seq,
-        "message": message,
-        "source": source,
-        "timestamp": time.time()  # Unix timestamp (seconds since 1970)
+        "seq":       seq,
+        "message":   message,
+        "source":    source,
+        "timestamp": time.time(),
     }
-    
-    # Forward to the Kubernetes receiver service via HTTP POST
+
     try:
         resp = requests.post(RECEIVER_URL, json=payload, timeout=5)
         if resp.status_code == 200:
-            print(f"Message accepted by receiver (seq {seq})")
-            # Send ACK back to the Cardputer
+            print(f"[bridge]   Forwarded OK → sending ACK")
             send_ack(seq)
         else:
-            print(f"Receiver returned error {resp.status_code}: {resp.text}")
+            print(f"[bridge]   Receiver returned {resp.status_code}: {resp.text}")
+            # No ACK — Cardputer will retry
     except requests.exceptions.RequestException as e:
-        print(f"Failed to contact receiver service: {e}")
-        # Do NOT send ACK – the message was not logged in the cluster.
-        # The Cardputer will retry.
-    
-    # Small delay to avoid flooding the loop
-    time.sleep(0.1)
+        print(f"[bridge]   Receiver unreachable: {e}")
+        # No ACK — Cardputer will retry
+
+    time.sleep(0.05)

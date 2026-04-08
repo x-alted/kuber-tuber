@@ -1,13 +1,15 @@
 [Unit]
-Description=LoRa Bridge to Kubernetes
+Description=Kuber-Tuber LoRa Bridge (worker1)
 After=network.target
 
 [Service]
-User=pi
-WorkingDirectory=/home/pi/kuber-tuber/LoRa
-ExecStart=/home/pi/kuber-tuber/LoRa/venv/bin/python /home/pi/kuber-tuber/LoRa/LoRa-Bridge.py
+User=worker1
+WorkingDirectory=/home/worker1/kuber-tuber/LoRa
+ExecStart=/usr/bin/python3 /home/worker1/kuber-tuber/LoRa/LoRa-Bridge.py
 Restart=always
 RestartSec=10
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target

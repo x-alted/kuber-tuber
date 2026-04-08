@@ -1,20 +1,191 @@
+#!/usr/bin/env python3
+"""
+LoRA-Test.py — Kuber-Tuber E22-900T22S diagnostic & verification tool
+Run on worker1 before starting the LoRa bridge service.
+
+Tests (in order):
+    1. Serial port open          — confirms /dev/ttyAMA0 is accessible
+    2. HAT identity response     — C1 00 09 command returns 3 bytes
+    3. Register readback         — verifies all 9 config registers
+    4. Parameter match check     — confirms SF9/BW125/915MHz matches Cardputer
+    5. Loopback send/receive     — sends a test string, reads it back
+
+Usage:
+    sudo python3 LoRA-Test.py
+
+    Run configure_e22.py first if any parameter check fails.
+"""
+
 import time
-import board
-import digitalio
-import busio
-import adafruit_rfm9x
+import sys
+import serial
 
-# Adjust CS and RESET pins to match your HAT
-CS = digitalio.DigitalInOut(board.CE0)    # usually CE0 or D8
-RESET = digitalio.DigitalInOut(board.D25) # usually D25
+SERIAL_PORT = '/dev/ttyAMA0'
+BAUD_RATE   = 9600
 
-RADIO_FREQ_MHZ = 915.0  # change if needed: 433.0 or 868.0
+# Expected register values (set by configure_e22.py)
+EXPECTED = {
+    'ADDH'   : 0x00,
+    'ADDL'   : 0x00,
+    'NETID'  : 0x00,
+    'SPED'   : 0x6C,   # 9600 baud | 4.8kbps air (SF9/BW125) | 8N1
+    'OPTION' : 0x00,   # 22 dBm | no RSSI byte
+    'CHAN'   : 0x41,   # channel 65 → 915.125 MHz
+    'TRSW'  : 0x00,
+    'CRYPT_H': 0x00,
+    'CRYPT_L': 0x00,
+}
 
-# Initialize SPI bus
-spi = busio.SPI(board.SCK, board.MOSI, board.MISO)
+SPED_UART_BAUD = {
+    0b000: '1200', 0b001: '2400', 0b010: '4800',
+    0b011: '9600', 0b100: '19200', 0b101: '38400',
+    0b110: '57600', 0b111: '115200',
+}
+SPED_AIR_SPEED = {
+    0b000: '0.3 kbps', 0b001: '1.2 kbps', 0b010: '2.4 kbps',
+    0b011: '4.8 kbps (≈SF9/BW125)', 0b100: '9.6 kbps',
+    0b101: '19.2 kbps', 0b110: '38.4 kbps', 0b111: '62.5 kbps',
+}
+OPTION_POWER = {
+    0b00: '22 dBm', 0b01: '17 dBm', 0b10: '13 dBm', 0b11: '10 dBm',
+}
 
+PASS = '✅'
+FAIL = '❌'
+WARN = '⚠️ '
+
+results = []
+
+def check(label: str, passed: bool, detail: str = ''):
+    icon = PASS if passed else FAIL
+    line = f"  {icon} {label}"
+    if detail:
+        line += f" — {detail}"
+    print(line)
+    results.append(passed)
+    return passed
+
+
+# ── 1. Open serial port ──────────────────────────────────────────────────────
+print("\n[1] Serial port")
 try:
-    rfm9x = adafruit_rfm9x.RFM9x(spi, CS, RESET, RADIO_FREQ_MHZ)
-    print("\u2705 LoRa HAT detected!")
-except RuntimeError as e:
-    print("\u26a0\ufe0f LoRa HAT not found:", e)
+    ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
+    ser.flushInput()
+    check("Opened", True, f"{SERIAL_PORT} @ {BAUD_RATE} baud")
+except serial.SerialException as e:
+    check("Opened", False, str(e))
+    print("\n  Hint: run with sudo, or add worker1 to the 'dialout' group:")
+    print("    sudo usermod -aG dialout worker1")
+    sys.exit(1)
+
+
+# ── 2. HAT identity (ping) ───────────────────────────────────────────────────
+print("\n[2] HAT identity (C1 00 09 command)")
+ser.write(bytes([0xC1, 0x00, 0x09]))
+time.sleep(0.5)
+n = ser.in_waiting
+raw = ser.read(n)
+if n >= 3:
+    check("HAT responded", True, f"{n} bytes: {raw.hex(' ')}")
+else:
+    check("HAT responded", False, f"Expected ≥3 bytes, got {n}: {raw.hex(' ')}")
+    print("  Hint: check /dev/ttyAMA0 vs ttyS0, and that dtoverlay=miniuart-bt is in config.txt")
+    sys.exit(1)
+
+
+# ── 3. Full register readback ────────────────────────────────────────────────
+print("\n[3] Full register readback (C1 00 09)")
+ser.flushInput()
+ser.write(bytes([0xC1, 0x00, 0x09]))
+time.sleep(0.5)
+resp = ser.read(ser.in_waiting)
+
+if len(resp) < 12:
+    check("Register read", False, f"Only {len(resp)} bytes returned: {resp.hex(' ')}")
+    print("  Hint: module may not be in config mode — ensure M0=M1=0 (normal mode) or run configure_e22.py")
+    sys.exit(1)
+
+check("Register read", True, f"{len(resp)} bytes received")
+regs = resp[3:12]   # skip 3-byte header (C1 00 09)
+
+names   = list(EXPECTED.keys())
+reg_map = dict(zip(names, regs))
+
+
+# ── 4. Parameter match check ─────────────────────────────────────────────────
+print("\n[4] Parameter verification")
+
+for name, val in reg_map.items():
+    exp = EXPECTED[name]
+    check(f"{name} = 0x{val:02X}", val == exp,
+          f"expected 0x{exp:02X}" if val != exp else '')
+
+# Decode SPED for human readability
+sped     = reg_map.get('SPED', 0)
+uart_baud = SPED_UART_BAUD.get((sped >> 5) & 0b111, '?')
+air_speed = SPED_AIR_SPEED.get((sped >> 2) & 0b111, '?')
+parity    = ['8N1', '8O1', '8E1', '8N1'][(sped) & 0b11]
+
+option    = reg_map.get('OPTION', 0)
+tx_power  = OPTION_POWER.get((option >> 0) & 0b11, '?')
+
+chan      = reg_map.get('CHAN', 0)
+freq_mhz  = 850.125 + chan
+
+print(f"\n  Decoded settings:")
+print(f"    UART baud  : {uart_baud} bps")
+print(f"    Air speed  : {air_speed}")
+print(f"    Parity     : {parity}")
+print(f"    TX power   : {tx_power}")
+print(f"    Frequency  : {freq_mhz:.3f} MHz (channel {chan})")
+
+cardputer_match = (
+    freq_mhz  >= 914.0 and freq_mhz <= 916.0 and   # ±1 MHz tolerance
+    air_speed == '4.8 kbps (≈SF9/BW125)'
+)
+if cardputer_match:
+    print(f"\n  {PASS} Parameters compatible with Cardputer firmware (SF9/BW125 @ 915 MHz)")
+else:
+    print(f"\n  {FAIL} Parameters do NOT match Cardputer firmware!")
+    print("       Run:  sudo python3 configure_e22.py")
+results.append(cardputer_match)
+
+
+# ── 5. Loopback send/receive ─────────────────────────────────────────────────
+print("\n[5] Loopback send/receive")
+print("  Sending test string over LoRa — you should see it received back")
+print("  (requires a second device, or short-range self-receive if supported)")
+
+TEST_MSG = b"KUBERTUBER_TEST_PING"
+ser.flushInput()
+ser.write(TEST_MSG)
+ser.flush()
+print(f"  Sent: {TEST_MSG.decode()}")
+
+time.sleep(2.0)
+rx = ser.read(ser.in_waiting)
+if rx:
+    try:
+        decoded = rx.decode('utf-8').strip()
+        check("Loopback RX", True, f"received: {decoded!r}")
+    except UnicodeDecodeError:
+        check("Loopback RX", True, f"received {len(rx)} bytes (non-UTF8): {rx.hex(' ')}")
+else:
+    print(f"  {WARN} No loopback received (expected if no second device nearby)")
+    print("       This is normal — start the Cardputer and send a message to do a live test")
+
+
+# ── Summary ──────────────────────────────────────────────────────────────────
+ser.close()
+passed = sum(results)
+total  = len(results)
+print(f"\n{'─'*50}")
+print(f"Result: {passed}/{total} checks passed")
+
+if passed == total:
+    print(f"{PASS} HAT is ready. Start the bridge:")
+    print("   sudo systemctl start lora-bridge.service")
+else:
+    print(f"{FAIL} Fix the issues above, then re-run this script.")
+    print("   If parameters are wrong: sudo python3 configure_e22.py")
+print()
