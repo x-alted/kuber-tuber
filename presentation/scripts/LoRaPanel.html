@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Roboto Mono', 'Courier New', monospace;
+      background: #0A0E1A;
+      color: #E0E0E0;
+      padding: 14px;
+      font-size: 11px;
+    }
+
+    .brand    { color: #00ACC1; font-size: 12px; font-weight: bold; letter-spacing: 1.5px; margin-bottom: 2px; }
+    .sub      { color: #455A64; font-size: 9px; margin-bottom: 14px; }
+
+    .status-box {
+      background: #0D1117;
+      border: 1px solid #1F2937;
+      border-radius: 3px;
+      padding: 8px 10px;
+      margin-bottom: 10px;
+    }
+    .status-label { color: #607D8B; font-size: 9px; margin-bottom: 3px; }
+    #phaseText    { color: #4CAF50; font-size: 10px; font-weight: bold; }
+
+    /* Progress bar (3 steps) */
+    .steps { display: flex; gap: 6px; margin-bottom: 12px; }
+    .step  {
+      flex: 1; height: 4px; border-radius: 2px;
+      background: #1F2937; transition: background 0.3s;
+    }
+    .step.done   { background: #4CAF50; }
+    .step.active { background: #00ACC1; }
+
+    .section-label {
+      color: #37474F; font-size: 9px;
+      letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px;
+    }
+
+    .btn {
+      display: block; width: 100%;
+      padding: 9px 10px; margin-bottom: 7px;
+      border: none; border-radius: 3px;
+      font-family: inherit; font-size: 11px; font-weight: bold;
+      cursor: pointer; color: #FFFFFF; text-align: left;
+    }
+    .btn:hover   { opacity: 0.85; }
+    .btn:active  { opacity: 0.65; }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    .btn-blue   { background: #1565C0; }
+    .btn-purple { background: #4A148C; }
+    .btn-teal   { background: #01579B; }
+    .btn-green  { background: #1B5E20; }
+    .btn-gray   { background: #37474F; }
+
+    .scenario-info {
+      background: #0D1117;
+      border: 1px solid #1F2937;
+      border-radius: 3px;
+      padding: 7px 10px;
+      margin-bottom: 10px;
+      font-size: 8.5px;
+      color: #546E7A;
+      line-height: 1.8;
+    }
+    .scenario-info .k { color: #00ACC1; }
+
+    .divider { border: none; border-top: 1px solid #1F2937; margin: 10px 0; }
+
+    #feedback { min-height: 16px; font-size: 10px; color: #00ACC1; margin-top: 4px; }
+    #feedback.error { color: #EF5350; }
+
+    .note { font-size: 9px; color: #37474F; line-height: 1.6; margin-top: 10px; }
+  </style>
+</head>
+<body>
+
+  <div class="brand">&#x26A1; KUBER-TUBER</div>
+  <div class="sub">LoRa Live Feed &#x00B7; Demo Control Panel</div>
+
+  <!-- 3-step progress indicator -->
+  <div class="steps">
+    <div class="step" id="step1"></div>
+    <div class="step" id="step2"></div>
+    <div class="step" id="step3"></div>
+  </div>
+
+  <div class="status-box">
+    <div class="status-label">CURRENT PHASE</div>
+    <div id="phaseText">Ready &#x2014; press Full Demo or a scenario below</div>
+  </div>
+
+  <!-- Primary: full 3-min run -->
+  <div class="section-label">Full Run</div>
+  <button class="btn btn-blue" id="btnFull" onclick="run('runFullLoRaDemo', -1, '&#x25B6; Full 3-min demo running&#x2026;')">
+    &#x25B6;&nbsp; Full Demo (~3 min)
+  </button>
+
+  <hr class="divider">
+
+  <!-- Individual scenarios -->
+  <div class="section-label">Individual Scenarios (~60s each)</div>
+
+  <button class="btn btn-purple" id="btnS1" onclick="run('runLoRaScenario1', 1, '&#x2461; Event security messaging')">
+    &#x2461;&nbsp; Event Security
+  </button>
+  <button class="btn btn-teal"   id="btnS2" onclick="run('runLoRaScenario2', 2, '&#x2462; Temperature monitoring alerts')">
+    &#x2462;&nbsp; Temperature Monitoring
+  </button>
+  <button class="btn btn-green"  id="btnS3" onclick="run('runLoRaScenario3', 3, '&#x2463; Construction lift coordination')">
+    &#x2463;&nbsp; Lift Coordination
+  </button>
+
+  <hr class="divider">
+
+  <button class="btn btn-gray" id="btnRst" onclick="run('resetLoRaSlide', 0, 'Reset &#x2014; ready to run again')">
+    &#x21BA;&nbsp; Reset
+  </button>
+
+  <div id="feedback"></div>
+
+  <!-- Scenario reference -->
+  <div class="scenario-info">
+    <span class="k">&#x2461; Security   </span> CARD-01/02/03/04<br>
+    <span class="k">&#x2462; Temperature </span> SENS-FZ1/FZ2/RF1/RF2<br>
+    <span class="k">&#x2463; Lift Coord  </span> CARD-11/12/13<br>
+    <span class="k">Gateway         </span> worker1 &#x00B7; 10.0.20.138<br>
+    <span class="k">Freq            </span> 915.0 MHz &#x00B7; SF9 &#x00B7; BW 125kHz
+  </div>
+
+  <div class="note">
+    Scenarios run automatically with sleep-based pacing.<br>
+    Each step takes 2&#x2013;4s &#x2014; the slide updates live.<br>
+    Do not close the sidebar while a scenario is running.
+  </div>
+
+  <script>
+    var currentStep = 0;
+
+    var successLabels = {
+      runFullLoRaDemo:  'Full demo complete &#x2014; 36 messages received',
+      runLoRaScenario1: '&#x2461; Event security complete &#x2014; 12 msgs',
+      runLoRaScenario2: '&#x2462; Temperature complete &#x2014; 12 msgs',
+      runLoRaScenario3: '&#x2463; Lift coordination complete &#x2014; 12 msgs',
+      resetLoRaSlide:   'Reset complete &#x2014; ready to run again',
+    };
+
+    function run(fnName, stepNum, runningMsg) {
+      setAllDisabled(true);
+      document.getElementById('phaseText').innerHTML = runningMsg;
+      setFeedback('Running&#x2026;', false);
+
+      google.script.run
+        .withSuccessHandler(function () {
+          if (stepNum >= 0) {
+            currentStep = stepNum === -1 ? 3 : stepNum;
+            updateSteps();
+          } else {
+            currentStep = 0;
+            updateSteps();
+          }
+          document.getElementById('phaseText').innerHTML =
+            successLabels[fnName] || '&#x2713; Complete';
+          setFeedback('&#x2713; Complete', false);
+          setAllDisabled(false);
+        })
+        .withFailureHandler(function (err) {
+          setFeedback('&#x2716; ' + err.message, true);
+          setAllDisabled(false);
+        })
+        [fnName]();
+    }
+
+    function updateSteps() {
+      for (var i = 1; i <= 3; i++) {
+        var el = document.getElementById('step' + i);
+        el.className = 'step' +
+          (i < currentStep ? ' done' : (i === currentStep ? ' active' : ''));
+      }
+    }
+
+    function setAllDisabled(v) {
+      ['btnFull','btnS1','btnS2','btnS3','btnRst'].forEach(function (id) {
+        document.getElementById(id).disabled = v;
+      });
+    }
+
+    function setFeedback(msg, isError) {
+      var el = document.getElementById('feedback');
+      el.innerHTML = msg;
+      el.className = isError ? 'error' : '';
+    }
+  </script>
+</body>
+</html>
