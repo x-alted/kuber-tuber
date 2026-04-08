@@ -10,10 +10,6 @@
 | worker3         | 10.0.20.63   | worker3        | K3s worker                         |
 | Switch          | 10.0.1.58    | GS305E         | NETGEAR GS305E                     |
 
-                        **Might not use the Ubuntu server vm**
-| Ubuntu VM       | 192.168.2.214| kuberserver    | K3s worker & Rancher host          |
-
-**Rancher internal service IP:** `10.43.143.192` (accessible within cluster; for UI use `https://192.168.2.214:30443`)
 
 **still need to change the rancher internal Service IP as a re-install is required** 
                               **This is not final**
