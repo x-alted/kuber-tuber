@@ -27,10 +27,14 @@
 #define LORA_CR         7
 #define LORA_TX_POWER   22
 
+// CAP.KiRa-1262 pin definitions (M5Stack Cardputer ESP32-S3)
 #define LORA_CS         5
-#define LORA_RST        14
-#define LORA_BUSY       13
-#define LORA_DIO1       12
+#define LORA_RST        3
+#define LORA_BUSY       6
+#define LORA_DIO1       4
+#define LORA_MOSI       11
+#define LORA_MISO       13
+#define LORA_SCK        12
 
 #define MAX_MSG_LEN     100
 #define ACK_TIMEOUT_MS  1500
@@ -54,7 +58,8 @@ const uint8_t aes_key[32] = {
 
 // ==================== GLOBAL STATE ====================
 
-SX1262 radio = new Module(LORA_CS, LORA_DIO1, LORA_RST, LORA_BUSY);
+SPIClass spi(HSPI);
+SX1262 radio = new Module(LORA_CS, LORA_DIO1, LORA_RST, LORA_BUSY, spi);
 Preferences prefs;
 
 String  message      = "";
@@ -325,6 +330,8 @@ void setup() {
 
   load_seq_counter();
   update_display("Init LoRa...", false);
+
+  spi.begin(LORA_SCK, LORA_MISO, LORA_MOSI, LORA_CS);
 
   int state = radio.begin(LORA_FREQ, LORA_BW, LORA_SF, LORA_CR,
                           RADIOLIB_SX126X_SYNC_WORD_PRIVATE, LORA_TX_POWER);
