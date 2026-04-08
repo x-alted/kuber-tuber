@@ -336,7 +336,9 @@ void setup() {
   int state = radio.begin(LORA_FREQ, LORA_BW, LORA_SF, LORA_CR,
                           RADIOLIB_SX126X_SYNC_WORD_PRIVATE, LORA_TX_POWER);
   if (state != RADIOLIB_ERR_NONE) {
-    update_display("LoRa Fail", true);
+    char err[24];
+    snprintf(err, sizeof(err), "LoRa Fail:%d", state);
+    update_display(err, true);
     while (1) delay(1000);
   }
 
