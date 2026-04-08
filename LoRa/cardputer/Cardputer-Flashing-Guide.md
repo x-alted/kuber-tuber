@@ -13,11 +13,16 @@ The firmware enables AES‑256 encrypted messaging, sequence counters, acknowled
 ### 1.1 Hardware
 - **Cardputer ADV** (M5Stack) – includes ESP32‑S3, keyboard, display.
 - **LoRa module** (e.g., Waveshare SX1262 or generic RA‑01S) – must be compatible with the Cardputer’s pinout (usually connected via the rear Grove port or dedicated LoRa socket).  
-  *The official Kuber‑Tuber firmware uses **RadioLib** and assumes an SX1262-based module on the following pins:*
-  - CS  → GPIO5
-  - RST → GPIO14
-  - BUSY → GPIO13
-  - DIO1 → GPIO12
+  *The official Kuber‑Tuber firmware uses **RadioLib** with a custom FSPI bus. Current pin definitions (CAP.KiRa-1262):*
+  - CS   → GPIO5
+  - RST  → GPIO3
+  - BUSY → GPIO6
+  - DIO1 → GPIO4
+  - MOSI → GPIO11
+  - MISO → GPIO13
+  - SCK  → GPIO12
+  
+  > **Note:** If you see RadioLib error **-2 (CHIP_NOT_FOUND)** on boot, the pin mapping does not match your cap. Verify against your cap's schematic and update the `#define` values at the top of `src/main.cpp`.
 - **USB‑C cable** (data capable) for programming.
 - **Antenna** for 915 MHz (or 868 MHz depending on region).
 
@@ -28,9 +33,8 @@ The firmware enables AES‑256 encrypted messaging, sequence counters, acknowled
 - **USB‑to‑UART driver** (usually built into modern OS, but install CP210x if needed).
 
 ### 1.3 Source Code
-The complete firmware is available in your project repository:  
-`LoRa/KuberTuber-Cardputer.ino`.  
-If you don’t have it, copy the code provided in the final report or from the repository. We will use that exact file.
+The complete firmware is at `LoRa/cardputer/src/main.cpp` in the repository.
+Clone the repo and open the `LoRa/cardputer/` folder directly in PlatformIO — the project is already configured.
 
 ---
 
@@ -40,42 +44,34 @@ If you don’t have it, copy the code provided in the final report or from the r
 - **VSCode**: Install the “PlatformIO IDE” extension.
 - **Standalone**: Download from [platformio.org](https://platformio.org/install/cli) (command‑line tools).
 
-### 2.2 Create a New Project or Use Existing
-1. Open PlatformIO Home → **New Project**.
-2. **Name**: `KuberTuber-Cardputer`
-3. **Board**: Search for `m5stack-cardputer` (or `m5stack-cardputer`).
-4. **Framework**: `Arduino`.
-5. **Location**: Choose your workspace.
-6. Click **Finish**.
+### 2.2 Open the Existing Project
+The project already exists in the repository. Open the `LoRa/cardputer/` folder in PlatformIO — it contains a ready-to-use `platformio.ini` and `src/main.cpp`.
 
-### 2.3 Configure `platformio.ini`
-Replace the generated content with the following (based on your project’s `platformio.ini`):
+### 2.3 `platformio.ini` reference
 ```ini
 [env:cardputer]
 platform = espressif32
-board = m5stack-cardputer
+board = esp32-s3-devkitc-1
 framework = arduino
 monitor_speed = 115200
-upload_port = /dev/ttyACM0          ; Change to your port (e.g., COM3 on Windows)
-lib_deps = 
+upload_port = /dev/ttyACM1          ; adjust to your port (run ls /dev/ttyACM* to confirm)
+lib_deps =
     m5stack/M5Cardputer@^1.1.0
-    jgromes/RadioLib@^6.2.0
-build_flags = 
+    jgromes/RadioLib@^6.5.0
+build_flags =
     -DCORE_DEBUG_LEVEL=0
+    -DARDUINO_USB_MODE=1
+    -DARDUINO_USB_CDC_ON_BOOT=1
+    -DBOARD_HAS_PSRAM
 ```
-- Adjust `upload_port` to match your system (Linux: `/dev/ttyACM0` or `/dev/ttyUSB0`; Windows: `COM3` etc.).
-- The libraries `M5Cardputer` and `RadioLib` will be automatically downloaded.
+> **Tip:** On Linux the Cardputer enumerates as `/dev/ttyACM0` or `/dev/ttyACM1` depending on what else is connected. Run `ls /dev/ttyACM*` after plugging in to confirm the port.
 
-### 2.4 Copy the Firmware Source
-Delete the auto-generated `src/main.cpp` and copy the content of `KuberTuber-Cardputer.ino` into `src/main.cpp`.  
-Alternatively, rename the `.ino` file to `main.cpp` and place it in the `src/` folder.
-
-The firmware includes:
-- Keyboard handling (`M5Cardputer`).
-- LoRa initialisation with RadioLib (SX1262).
-- AES‑256‑CBC encryption using `mbedtls` (built into ESP32).
-- Non‑volatile storage (Preferences) for the sequence number.
-- ACK listening and retry logic.
+### 2.4 Firmware feature summary
+- Bidirectional LoRa: uplink (Cardputer → gateway) and downlink (gateway → Cardputer).
+- AES‑256‑CBC encryption with PKCS#7 padding and random IV per message.
+- Sequence number stored in NVS (survives reboots).
+- ACK + retry (up to 3 attempts, 1.5 s timeout each).
+- **Demo macros**: `Fn+1` / `Fn+2` / `Fn+3` pre-load scenario messages for the live presentation.
 
 ---
 
@@ -135,10 +131,10 @@ In PlatformIO, click the **Serial Port** icon in the bottom toolbar and choose t
 - You will see progress messages. At the end, the Cardputer will reboot and show the initial screen:
 
 ```
-KUBER-TUBER v2.0
-Batt: 85%  Seq: 0
+KUBER-TUBER ADV
+Batt:85%  Seq:0
 
-> 
+> Fn+1  Fn+2  Fn+3
 [Ready]
 ```
 
@@ -174,7 +170,7 @@ Now that both the LoRa gateway (`worker1` with bridge) and the Cardputer are pro
 2. Press the **M5** button or **Enter** key (depending on firmware mapping – the firmware uses `KEY_RETURN` or `KEY_M5`).
 3. Observe the Cardputer screen:
    - It will show `Encrypting...`, then `Sending...`.
-   - If successful, the screen flashes **green** and shows `ACK received`.
+   - If successful, the screen flashes **green** and shows `ACK OK`.
    - The sequence number (shown at top right) increments by 1.
 4. On the gateway side:
    - View bridge logs: `sudo journalctl -u lora-bridge -f`  
