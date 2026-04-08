@@ -143,9 +143,17 @@ def main():
     print("[cfg] Reading back registers...")
     ser.flushInput()
     ser.write(READ_CMD)
-    time.sleep(0.5)
-    readback = ser.read(12)   # blocking read — waits up to serial timeout for all 12 bytes
-    print(f"[cfg] Readback: {readback.hex(' ')}")
+
+    # Collect bytes until we have 12 or 3 seconds elapse (module may send in bursts)
+    readback = b""
+    deadline = time.monotonic() + 3.0
+    while len(readback) < 12 and time.monotonic() < deadline:
+        chunk = ser.read(12 - len(readback))
+        readback += chunk
+        if len(readback) < 12:
+            time.sleep(0.1)
+
+    print(f"[cfg] Readback ({len(readback)} bytes): {readback.hex(' ')}")
 
     if len(readback) >= 12:
         regs = readback[3:12]
