@@ -21,7 +21,7 @@
 
 // ==================== CONFIGURATION ====================
 
-#define LORA_FREQ       915.0
+#define LORA_FREQ       868.0
 #define LORA_BW         125.0
 #define LORA_SF         9
 #define LORA_CR         7

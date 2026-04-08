@@ -95,7 +95,7 @@ If you generated a different key during LoRa setup, replace the bytes accordingl
 
 ### 3.2 LoRa Frequency and Parameters
 ```cpp
-#define LORA_FREQ       915.0   // Change to 868.0 if in Europe
+#define LORA_FREQ       868.0   // 868 MHz to match LoRa1262 cap antenna
 #define LORA_BW         125.0
 #define LORA_SF         9
 #define LORA_CR         7

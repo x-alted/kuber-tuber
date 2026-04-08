@@ -4,7 +4,7 @@ configure_e22.py — One-time E22-900T22S LoRa parameter configuration
 Run this ONCE on worker1 to set the HAT to match the Cardputer firmware.
 
 Cardputer settings (main.cpp):
-    Frequency  : 915.0 MHz
+    Frequency  : 868.0 MHz
     Bandwidth  : 125 kHz
     Spreading  : SF9
     Coding rate: CR 4/7
@@ -85,7 +85,7 @@ def gpio_cleanup(handle):
 # REG3  SPED    : 0x6C  — UART 9600bps | air 4.8kbps (≈SF9/BW125) | 8N1
 #                         [7:5]=011 [4:2]=011 [1:0]=00
 # REG4  OPTION  : 0x00  — 22 dBm TX power, no RSSI byte appended
-# REG5  CHAN    : 0x41  — channel 65 → 850.125+65 = 915.125 MHz
+# REG5  CHAN    : 0x12  — channel 18 → 850.125+18 = 868.125 MHz
 # REG6  TRSW   : 0x00  — transparent mode, no LBT
 # REG7  CRYPT_H : 0x00  — no hardware encryption (we do AES in software)
 # REG8  CRYPT_L : 0x00
@@ -96,18 +96,18 @@ CONFIG_CMD = bytes([0xC0, 0x00, 0x09,
                     0x00,   # NETID
                     0x6C,   # SPED
                     0x00,   # OPTION
-                    0x41,   # CHAN (915 MHz)
+                    0x12,   # CHAN (868 MHz)
                     0x00,   # TRSW
                     0x00,   # CRYPT_H
                     0x00])  # CRYPT_L
 
 READ_CMD = bytes([0xC1, 0x00, 0x09])
 
-EXPECTED = bytes([0x00, 0x00, 0x00, 0x6C, 0x00, 0x41, 0x00, 0x00, 0x00])
+EXPECTED = bytes([0x00, 0x00, 0x00, 0x6C, 0x00, 0x12, 0x00, 0x00, 0x00])
 
 
 def main():
-    print("[cfg] Configuring Waveshare E22-900T22S for 915 MHz / SF9 / BW125 / 22 dBm")
+    print("[cfg] Configuring Waveshare E22-900T22S for 868 MHz / SF9 / BW125 / 22 dBm")
 
     h = gpio_setup()
 
