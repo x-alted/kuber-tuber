@@ -18,9 +18,9 @@ The firmware enables AES‑256 encrypted messaging, sequence counters, acknowled
   - RST  → GPIO3
   - BUSY → GPIO6
   - DIO1 → GPIO4
-  - MOSI → GPIO11
-  - MISO → GPIO13
-  - SCK  → GPIO12
+  - MOSI → GPIO14
+  - MISO → GPIO39
+  - SCK  → GPIO40
   
   > **Note:** If you see RadioLib error **-2 (CHIP_NOT_FOUND)** on boot, the pin mapping does not match your cap. Verify against your cap's schematic and update the `#define` values at the top of `src/main.cpp`.
 - **USB‑C cable** (data capable) for programming.

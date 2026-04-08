@@ -32,9 +32,9 @@
 #define LORA_RST        3
 #define LORA_BUSY       6
 #define LORA_DIO1       4
-#define LORA_MOSI       11
-#define LORA_MISO       13
-#define LORA_SCK        12
+#define LORA_MOSI       14
+#define LORA_MISO       39
+#define LORA_SCK        40
 
 #define MAX_MSG_LEN     100
 #define ACK_TIMEOUT_MS  1500
