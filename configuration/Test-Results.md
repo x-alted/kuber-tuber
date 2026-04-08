@@ -29,6 +29,8 @@
 | Basic send/receive (Pi #1) | | [ ] | |
 | Range test (Pi #1 ↔ Cardputer) | | [ ] | |
 | Encrypted payload | | [ ] | |
+| lora-receiver pod health check | 2026-04-08 | [x] | `/health` returning 200 OK; pod stable in lora-demo namespace |
+| lora-bridge replay protection (seq=0) | 2026-04-08 | [x] | Fixed — `last_seq` initialised to -1; first message accepted correctly |
 
 ## K3s Resilience
 

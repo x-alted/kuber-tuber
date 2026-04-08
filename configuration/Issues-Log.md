@@ -24,6 +24,15 @@
 | 2026-03-27 | VLAN trunk configuration on Router Pi (single physical port) | Router Pi (Raspberry Pi OS) | Used `systemd-networkd` with VLAN tagged interfaces (`eth0.1`, `eth0.10`, `eth0.20`). Configuration documented in `Service-Configuration.md`. | Closed |
 | 2026-04-01 | Inter‑VLAN routing initially blocked by default iptables rules | Router Pi | Added explicit allow rules for required traffic (e.g., SSH from control plane to workers) and set default drop on forward chain. | Closed |
 
+| 2026-04-08 | Cardputer upload port wrong (`/dev/ttyACM0` not found) | PlatformIO / Cardputer | Device enumerated as `/dev/ttyACM1`; updated `platformio.ini` `upload_port`. | Closed |
+| 2026-04-08 | LoRa radio init fails with RadioLib error -2 (CHIP_NOT_FOUND) | Cardputer / CAP.KiRa-1262 | SPI pin mapping mismatch between firmware and physical cap. Tried HSPI→FSPI swap; pins still unconfirmed. Awaiting correct pinout from cap documentation. | Open |
+| 2026-04-08 | Replay protection in `LoRa-Bridge.py` rejects first message (seq=0) | LoRa gateway (worker1) | `last_seq` initialised to `0`; `0 <= 0` caused seq=0 to be dropped. Fixed by initialising to `-1`. | Closed |
+| 2026-04-08 | `decrypt_utils.py` minimum packet length check too lenient | LoRa gateway (worker1) | Checked `< 16` (IV only, no ciphertext); corrected to `< 17`. | Closed |
+| 2026-04-08 | `receiver_service.yaml` misnamed — contains Python, not YAML | LoRa/kubernetes | Renamed to `receiver_service.py`; new proper K8s manifest created as `lora-receiver.yaml`. | Closed |
+| 2026-04-08 | `kubectl apply` on worker1 fails (no kubeconfig) | worker1 / kubectl | kubectl not configured on worker nodes; must run from master (`debian-master`). | Closed |
+| 2026-04-08 | `kubectl` broken after `sed` replaced `127.0.0.1` with `192.168.2.233` in kubeconfig | debian-master / kubeconfig | K3s API only binds to localhost on master; reverted sed with `sed -i 's/192.168.2.233/127.0.0.1/'`. | Closed |
+| 2026-04-08 | `lora-receiver` pod in CrashLoopBackOff after new manifest applied | K8s / lora-demo namespace | `pip install flask` succeeded; pod stabilised and `/health` responding 200. Cause was prior stale deployment conflict; resolved after clean apply. | Closed |
+
 **Notes:**
 - All closed issues have been verified and resolved as of the date shown.
 - Open issues are tracked in project milestones and will be addressed in upcoming weeks.
