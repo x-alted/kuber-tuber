@@ -37,7 +37,7 @@ AES_KEY = bytes([
     0x2d, 0x98, 0x10, 0xa3, 0x09, 0x14, 0xdf, 0xf4
 ])
 
-last_seq    = {"cardputer": 0}
+last_seq    = {"cardputer": -1}
 PACKET_GAP_S = 0.2
 
 # ==================== SERIAL INIT ====================

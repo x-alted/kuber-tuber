@@ -17,7 +17,7 @@ def decrypt_payload(b64_ciphertext, key_bytes):
     except Exception as e:
         return None, f"Base64 decode error: {e}"
     
-    if len(raw) < 16:
+    if len(raw) < 17:
         return None, "Packet too short"
     
     iv = raw[:16]
