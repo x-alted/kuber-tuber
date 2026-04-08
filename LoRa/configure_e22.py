@@ -125,7 +125,7 @@ def main():
     ser.write(CONFIG_CMD)
     time.sleep(0.5)
 
-    response = ser.read(ser.in_waiting or 12)
+    response = ser.read(12)   # blocking read for full 12-byte echo
     print(f"[cfg] Response: {response.hex(' ')}")
 
     # E22 echoes back C0 + same data on successful write (C1 is for read responses)
@@ -144,7 +144,7 @@ def main():
     ser.flushInput()
     ser.write(READ_CMD)
     time.sleep(0.5)
-    readback = ser.read(ser.in_waiting or 12)
+    readback = ser.read(12)   # blocking read — waits up to serial timeout for all 12 bytes
     print(f"[cfg] Readback: {readback.hex(' ')}")
 
     if len(readback) >= 12:
