@@ -58,7 +58,7 @@ const uint8_t aes_key[32] = {
 
 // ==================== GLOBAL STATE ====================
 
-SPIClass spi(HSPI);
+SPIClass spi(FSPI);
 SX1262 radio = new Module(LORA_CS, LORA_DIO1, LORA_RST, LORA_BUSY, spi);
 Preferences prefs;
 
@@ -324,6 +324,7 @@ void send_message() {
 // ==================== SETUP ====================
 
 void setup() {
+  Serial.begin(115200);
   M5Cardputer.begin();
   M5Cardputer.Display.setRotation(1);
   M5Cardputer.Display.setTextSize(2);
@@ -336,9 +337,14 @@ void setup() {
   int state = radio.begin(LORA_FREQ, LORA_BW, LORA_SF, LORA_CR,
                           RADIOLIB_SX126X_SYNC_WORD_PRIVATE, LORA_TX_POWER);
   if (state != RADIOLIB_ERR_NONE) {
-    char err[24];
-    snprintf(err, sizeof(err), "LoRa Fail:%d", state);
-    update_display(err, true);
+    Serial.printf("RadioLib error code: %d\n", state);
+    M5Cardputer.Display.fillScreen(TFT_BLACK);
+    M5Cardputer.Display.setCursor(0, 0);
+    M5Cardputer.Display.setTextColor(TFT_RED, TFT_BLACK);
+    M5Cardputer.Display.println("LoRa FAIL");
+    M5Cardputer.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+    M5Cardputer.Display.printf("Code: %d\n", state);
+    M5Cardputer.Display.println("Check pins/cap");
     while (1) delay(1000);
   }
 
