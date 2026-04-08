@@ -27,18 +27,22 @@
 #define LORA_CR         7
 #define LORA_TX_POWER   22
 
-// CAP.KiRa-1262 pin definitions for M5Stack Cardputer (ESP32-S3)
 #define LORA_CS         5
-#define LORA_RST        3
-#define LORA_BUSY       6
-#define LORA_DIO1       4
-#define LORA_MOSI       11
-#define LORA_MISO       13
-#define LORA_SCK        12
+#define LORA_RST        14
+#define LORA_BUSY       13
+#define LORA_DIO1       12
 
 #define MAX_MSG_LEN     100
 #define ACK_TIMEOUT_MS  1500
 #define RETRY_LIMIT     3
+
+// ==================== DEMO MACROS ====================
+// Fn+1: Event security scenario
+// Fn+2: Construction lift scenario
+// Fn+3: Rural healthcare scenario
+#define MACRO_1  "SEC Crowd surge at north gate"
+#define MACRO_2  "LIFT REQ floor 3"
+#define MACRO_3  "PT 123 TEMP 38.5"
 
 // AES‑256 key — must match LoRa-Bridge.py on worker1
 const uint8_t aes_key[32] = {
@@ -50,8 +54,7 @@ const uint8_t aes_key[32] = {
 
 // ==================== GLOBAL STATE ====================
 
-SPIClass spi(HSPI);
-SX1262 radio = new Module(LORA_CS, LORA_DIO1, LORA_RST, LORA_BUSY, spi);
+SX1262 radio = new Module(LORA_CS, LORA_DIO1, LORA_RST, LORA_BUSY);
 Preferences prefs;
 
 String  message      = "";
@@ -185,10 +188,16 @@ void update_display(const char *status, bool error) {
   }
 
   // Outgoing message being typed (yellow prompt, white text)
+  // When empty, show macro shortcut hint in dark grey as a prompt
   M5Cardputer.Display.setTextColor(TFT_YELLOW, TFT_BLACK);
   M5Cardputer.Display.print("> ");
-  M5Cardputer.Display.setTextColor(TFT_WHITE, TFT_BLACK);
-  M5Cardputer.Display.println(message);
+  if (message.length() > 0) {
+    M5Cardputer.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+    M5Cardputer.Display.println(message);
+  } else {
+    M5Cardputer.Display.setTextColor(TFT_DARKGREY, TFT_BLACK);
+    M5Cardputer.Display.println("Fn+1  Fn+2  Fn+3");
+  }
 
   // Status bar at bottom
   M5Cardputer.Display.setCursor(0, M5Cardputer.Display.height() - 20);
@@ -317,9 +326,6 @@ void setup() {
   load_seq_counter();
   update_display("Init LoRa...", false);
 
-  // Initialise SPI bus with CAP.KiRa-1262 pins before RadioLib begins
-  spi.begin(LORA_SCK, LORA_MISO, LORA_MOSI, LORA_CS);
-
   int state = radio.begin(LORA_FREQ, LORA_BW, LORA_SF, LORA_CR,
                           RADIOLIB_SX126X_SYNC_WORD_PRIVATE, LORA_TX_POWER);
   if (state != RADIOLIB_ERR_NONE) {
@@ -346,6 +352,16 @@ void loop() {
     if (millis() - lastKeyTime < 50) return;
     lastKeyTime = millis();
 
+    if (key.fn) {
+      // Fn+1/2/3 pre-loads a demo scenario into the message buffer
+      for (char c : key.word) {
+        if      (c == '1') { message = MACRO_1; break; }
+        else if (c == '2') { message = MACRO_2; break; }
+        else if (c == '3') { message = MACRO_3; break; }
+      }
+      update_display("Ready", false);
+      return;
+    }
     if (key.del) {
       if (message.length() > 0) message.remove(message.length() - 1);
     }
