@@ -4,8 +4,8 @@ After=network.target
 
 [Service]
 User=root
-WorkingDirectory=/home/worker1/kuber-tuber/LoRa
-ExecStart=/usr/bin/python3 /home/worker1/kuber-tuber/LoRa/LoRa-Bridge.py
+WorkingDirectory=/home/worker1/kuber-tuber/LoRa/gateway
+ExecStart=/usr/bin/python3 /home/worker1/kuber-tuber/LoRa/gateway/LoRa-Bridge.py
 Restart=always
 RestartSec=10
 StandardOutput=journal
