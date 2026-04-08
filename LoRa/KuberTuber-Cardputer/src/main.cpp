@@ -247,7 +247,7 @@ void update_display(const char *status, bool error) {
   M5Cardputer.Display.fillScreen(TFT_BLACK);          // Clear screen
   M5Cardputer.Display.setCursor(0, 0);
   M5Cardputer.Display.setTextColor(TFT_WHITE, TFT_BLACK);
-  M5Cardputer.Display.printf("KUBER-TUBER v2.0\n");
+  M5Cardputer.Display.printf("KUBER-TUBER ADV\n");
   M5Cardputer.Display.printf("Batt: %d%%  Seq: %u\n\n", 
     M5Cardputer.Power.getBatteryLevel(), msg_seq);   // Show battery and current sequence number
   
