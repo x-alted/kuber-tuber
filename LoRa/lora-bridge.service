@@ -3,7 +3,7 @@ Description=Kuber-Tuber LoRa Bridge (worker1)
 After=network.target
 
 [Service]
-User=worker1
+User=root
 WorkingDirectory=/home/worker1/kuber-tuber/LoRa
 ExecStart=/usr/bin/python3 /home/worker1/kuber-tuber/LoRa/LoRa-Bridge.py
 Restart=always
