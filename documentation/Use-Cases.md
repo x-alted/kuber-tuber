@@ -25,7 +25,7 @@ These are fully implemented or trivially configurable with the existing Kuber‑
 - Command centre views the live log via Rancher dashboard on a local laptop.
 - No cellular, no internet, no monthly fees.
 
-**Validation:** Already tested – Cardputer sends `SEC Crowd surge at north gate`, message appears in `kubectl logs` within seconds.
+**Validation:** Demonstrated via usage example in final presentation. The lora-receiver pod and lora-bridge were confirmed healthy in Rancher; a live Cardputer-ADV LoRa connection was not achieved at final demo time. The full send→decrypt→log flow is implemented and documented.
 
 ---
 
@@ -39,7 +39,7 @@ These are fully implemented or trivially configurable with the existing Kuber‑
 - If temperature exceeds threshold for >5 minutes, the hub sends an alert to a manager’s Cardputer or a local buzzer.
 - All readings are stored locally. When internet returns, the backlog is forwarded to the cloud for compliance.
 
-**Validation:** A simulated temperature sensor sends `temp=8°C` (threshold=4°C). The hub triggers an alert – visible in logs and as a LoRa message to a Cardputer.
+**Validation:** Designed for this scenario; the receiver service and rules engine pod architecture supports it. A full live test was not conducted during the project timeline.
 
 ---
 

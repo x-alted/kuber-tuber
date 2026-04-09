@@ -22,10 +22,12 @@ The system consists of:
 - **Rancher** web UI for cluster management and monitoring, running on the K3s cluster.
 
 **Key capabilities:**
-- Encrypted text messaging without internet or cellular.
-- Centralised logging and audit trail.
-- Self‑healing workloads (Kubernetes reschedules pods after node failure).
+- Encrypted LoRa message pipeline (AES‑256) — fully implemented and tested at component level.
+- Centralised logging and audit trail via Rancher dashboard.
+- Self‑healing workloads (Kubernetes reschedules pods after node failure — demonstrated live).
 - Deployable wherever AC power is available (approx. 30W typical draw).
+
+> **Capstone note:** End‑to‑end LoRa transmission between the Cardputer ADV and `worker1` was not demonstrated at the final presentation (2026‑04‑09) due to a hardware issue — the Cardputer firmware displayed a "Check pins/cap" error indicating the SX1262 LoRa cap was not detected. The receiver pod, lora‑bridge service, decryption pipeline, and Kubernetes resilience were all confirmed working. See [configuration/Test-Results.md](configuration/Test-Results.md) for the full breakdown.
 
 ---
 
@@ -167,6 +169,7 @@ A **Raspberry Pi router** routes between VLANs and enforces firewall rules (e.g.
      journalctl -u lora-bridge -f
      ```
    - The decrypted message should appear in the logs.
+   > **Known issue:** If the Cardputer displays "Check pins/cap" on boot, the SX1262 LoRa cap is not being detected. Reseat the cap and confirm SPI pin continuity before retrying.
 
 4. **Deploy a sample workload**
    ```bash
@@ -196,8 +199,8 @@ For detailed hardening steps, see [Security/Hardening-Tasks.md](Security/Hardeni
 |--------------------------|--------|-------|
 | Basic connectivity (ping) | Pass | All nodes reachable within VLANs. |
 | Inter‑VLAN routing       | Pass | Router forwards traffic as per firewall rules. |
-| LoRa send/receive (unencrypted) | Pass | Basic communication between Cardputer and `worker1`. |
-| LoRa encrypted message   | Pass | AES‑256 decryption works; key from Kubernetes secret. |
+| LoRa send/receive (unencrypted) | Not achieved | Cardputer firmware displayed "Check pins/cap" error during final demo — physical LoRa link to `worker1` was not established. |
+| LoRa encrypted message   | Not achieved | End-to-end LoRa link was not established; lora-receiver pod and lora-bridge were healthy but no signal reached `worker1`. |
 | Node failure (worker)    | Pass | Pods reschedule to another worker within ~30s. |
 | Rancher availability     | Pass | Dashboard accessible on master node after cluster rebuild. |
 
@@ -205,10 +208,29 @@ Full test matrix and failure scenario results are in [Test-Results.md](Test-Resu
 
 ---
 
+## Capstone Outcome (2026‑04‑09)
+
+Presented to the NSCC Cybersecurity program on April 9, 2026.
+
+| Component | Status |
+|-----------|--------|
+| 4‑node K3s cluster (master + 3 workers) | Fully operational |
+| VLAN‑segmented network with Pi router | Fully operational |
+| Rancher dashboard (NodePort 30443) | Demonstrated live |
+| lora‑receiver pod + lora‑bridge service | Deployed and healthy |
+| AES‑256 decryption pipeline | Implemented and unit‑tested |
+| Pod rescheduling after node failure | Demonstrated live (Anthony powered off a Pi worker) |
+| End‑to‑end Cardputer → worker1 LoRa link | **Not demonstrated** — "Check pins/cap" hardware error on Cardputer at demo time |
+
+The live presentation consisted of a tour of the Rancher dashboard (nodes, workloads, extensions) and the node failure/self‑healing demonstration. Demo pictures of Cardputer activity were shown in the presentation slides.
+
+---
+
 ## Known Issues & Workarounds
 
 | Issue | Workaround / Resolution |
 |-------|--------------------------|
+| Cardputer displays "Check pins/cap" on boot | SX1262 LoRa cap not detected — reseat cap and verify SPI pin continuity. |
 | K3s does not easily change node IPs | Re‑installed K3s after moving to new subnet (documented in [Issues-Log.md](Issues-Log.md)). |
 | Rancher bootstrap password ignored | Retrieved password from Kubernetes secret (see Quick Start above). |
 | VLAN trunk configuration on Pi router | Used `systemd-networkd` with VLAN tagged interfaces (config in [Service-Configuration.md](Service-Configuration.md)). |
