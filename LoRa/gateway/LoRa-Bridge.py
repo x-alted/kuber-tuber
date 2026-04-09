@@ -27,7 +27,7 @@ from Crypto.Cipher import AES
 
 SERIAL_PORT    = '/dev/ttyAMA0'
 BAUD_RATE      = 9600
-RECEIVER_URL   = "http://lora-receiver.lora-demo.svc.cluster.local:8080/api/v1/messages"
+RECEIVER_URL = "http://127.0.0.1:8080/api/v1/messages"
 DOWNLINK_FILE  = '/tmp/lora-downlink.txt'   # write a message here to send to Cardputer
 
 AES_KEY = bytes([
