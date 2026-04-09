@@ -1,0 +1,14 @@
+[Unit]
+Description=LoRa Bridge to Kubernetes
+After=network.target kubectl-portforward-lora.service
+Requires=kubectl-portforward-lora.service
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/kuber-tuber/LoRa
+ExecStart=/home/pi/kuber-tuber/LoRa/venv/bin/python /home/pi/kuber-tuber/LoRa/LoRa-Bridge.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
