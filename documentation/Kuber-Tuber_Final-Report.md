@@ -1,6 +1,5 @@
 
-
-1. # **Kuber-Tuber**
+# **Kuber-Tuber**
 
 # **An Encrypted LoRa-Integrated Kubernetes Cluster for Off-Grid Communications**
 
