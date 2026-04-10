@@ -1,4 +1,13 @@
-# Kubernetes & Cluster 
+# Kubernetes & Cluster Configuration Tasks
+
+> **Historical note:** This document was written during the second cluster rebuild (March–April 2026) and reflects the IPs and configuration steps used at that time. Some node IPs in this file (e.g., `10.0.10.201`, `10.0.20.208`) are pre-rebuild values recorded for audit purposes. The **final production IPs** are:
+> - `debian-master`: `10.0.10.94` (K3s master, Mini PC)
+> - `worker1`: `10.0.20.138`
+> - `worker2`: `10.0.20.150`
+> - `worker3`: `10.0.20.63`
+>
+> See `networking/Network-Topology.md` for the authoritative current IP table.
+
 
 ## 1. K3s Cluster Rebuild
 
