@@ -15,15 +15,15 @@ This is a full guide for implementing the LoRa gateway on the Kuber-Tuber projec
 This section covers the physical setup of the Waveshare SX1262 LoRa HAT on your designated worker node (e.g., `worker1`) and enabling the necessary interfaces.
 
 ### 1.1. Hardware Installation
-1.  **Attach the HAT**: Carefully connect the Waveshare SX1262 LoRa HAT to the 40-pin GPIO header of your Raspberry Pi worker node (`worker1`). Ensure it is seated firmly and evenly. The HAT uses the CE0 (GPIO8) pin for Chip Select (CS) and GPIO25 for the Reset pin. Ensure your antenna is securely attached to the HAT's SMA connector.
+1.  **Attach the HAT**: Carefully connect the Waveshare SX1262 LoRa HAT to the 40-pin GPIO header of your Raspberry Pi worker node (`worker1`). Ensure it is seated firmly and evenly. The E22-900T22S HAT communicates via **UART serial** (`/dev/ttyAMA0`), not SPI. It uses GPIO22 for the M0 mode pin and GPIO27 for the M1 mode pin; these are driven by the bridge's configuration script (`configure_e22.py`). Ensure the antenna is securely attached to the HAT's SMA connector.
 
 ### 1.2. Software Configuration
-1.  **Enable SPI**: The LoRa HAT communicates over the Serial Peripheral Interface (SPI) bus. Enable it by running `sudo raspi-config`, navigating to `Interface Options` -> `SPI`, and selecting `<Yes>` to enable the SPI interface. Alternatively, you can add `dtparam=spi=on` to `/boot/config.txt` and reboot.
-2.  **Verify SPI Detection**: After a reboot, verify the SPI device is detected:
+1.  **Enable UART serial**: The E22-900T22S communicates over UART (`/dev/ttyAMA0`). Enable it via `sudo raspi-config` → `Interface Options` → `Serial Port`. When asked *"Would you like a login shell over the serial port?"*, select **No**. When asked *"Would you like the serial port hardware to be enabled?"*, select **Yes**. Reboot.
+2.  **Verify UART is available**: After rebooting, confirm the device node exists:
     ```bash
-    ls /dev/spidev*
+    ls /dev/ttyAMA0
     ```
-    You should see `spidev0.0` and `spidev0.1` listed. This confirms the SPI interface is active.
+    You should see `/dev/ttyAMA0`. If the node is missing, confirm that `enable_uart=1` is present in `/boot/firmware/config.txt` and that `console=serial0,115200` has been removed from `/boot/firmware/cmdline.txt`.
 
 ---
 
@@ -48,11 +48,12 @@ source venv/bin/activate
 ### 2.3. Install Python Packages
 With the virtual environment activated, install the required libraries:
 ```bash
-pip install adafruit-circuitpython-rfm9x pycryptodome requests
+pip install pyserial pycryptodome requests
 ```
-*   `adafruit-circuitpython-rfm9x`: Provides the interface to control the SX1262 LoRa radio.
-*   `pycryptodome`: A self-contained cryptographic library used for AES-256-CBC decryption.
-*   `requests`: Used to forward the decrypted message to the internal receiver service via HTTP POST.
+*   `pyserial`: Provides serial (UART) communication with the E22-900T22S over `/dev/ttyAMA0`.
+    > **Do not install `adafruit-circuitpython-rfm9x`** — that library targets the SX1276-based RFM9x module family and is completely incompatible with the SX1262-based E22-900T22S. Attempting to use it will result in immediate initialisation failure.
+*   `pycryptodome`: Cryptographic library used for AES-256-CBC decryption.
+*   `requests`: Used to forward decrypted messages to the receiver pod via HTTP POST.
 
 ---
 
@@ -117,99 +118,18 @@ def decrypt_payload(b64_ciphertext, key_bytes):
 *This function handles Base64 decoding, IV extraction, AES-256-CBC decryption, PKCS#7 padding removal, and parsing of the plaintext format (`<seq>|<message>`).*
 
 ### 3.2. The Main Bridge Script (`LoRa-Bridge.py`)
-This script initializes the LoRa radio, runs the main receive loop, and forwards messages.
-```python
-#!/usr/bin/env python3
-import time
-import board
-import busio
-import digitalio
-import adafruit_rfm9x
-import base64
-import json
-import requests
-from Crypto.Cipher import AES
-from decrypt_utils import decrypt_payload
+The production bridge script is `LoRa/gateway/LoRa-Bridge.py` in the repository. Deploy it directly — do not rewrite it from the adafruit example above. Key behaviours:
 
-# ==================== CONFIGURATION ====================
-RADIO_FREQ_MHZ = 915.0
-CS_PIN = board.CE0
-RESET_PIN = board.D25
-RECEIVER_URL = "http://lora-receiver.lora-demo.svc.cluster.local:8080/api/v1/messages"
+- Reads UART bytes from `/dev/ttyAMA0` at 9600 baud using `pyserial`.
+- **Loads the AES-256 key from Kubernetes at startup** via `kubectl get secret lora-encryption-key -n lora-demo`. The key is kept only in memory and never written to disk.
+- Decodes each received packet: Base64 decode → split 16-byte IV → AES-256-CBC decrypt → PKCS#7 unpad → parse `<seq>|<message>`.
+- Enforces replay protection: rejects any packet whose sequence number ≤ the last accepted value for that source.
+- Forwards accepted messages via HTTP POST to `http://lora-receiver.lora-demo.svc.cluster.local:8080/api/v1/messages`.
+- Sends `ACK:<seq>` back over UART on HTTP 200 from the receiver.
+- Supports downlink (hub → Cardputer): write a message to `/tmp/lora-downlink.txt` and the bridge transmits it on the next loop iteration.
 
-# WARNING: In production, retrieve this key from a secure store or env var.
-# For this guide, we define it directly.
-AES_KEY = bytes([
-    0x60, 0x3d, 0xeb, 0x10, 0x15, 0xca, 0x71, 0xbe,
-    0x2b, 0x73, 0xae, 0xf0, 0x85, 0x7d, 0x77, 0x81,
-    0x1f, 0x35, 0x2c, 0x07, 0x3b, 0x61, 0x08, 0xd7,
-    0x2d, 0x98, 0x10, 0xa3, 0x09, 0x14, 0xdf, 0xf4
-])
+Run it as a systemd service using `LoRa/gateway/lora-bridge.service` (see §3.3).
 
-last_seq = {"cardputer": 0}
-
-# ==================== LoRa INITIALIZATION ====================
-spi = busio.SPI(board.SCK, board.MOSI, board.MISO)
-cs = digitalio.DigitalInOut(CS_PIN)
-reset = digitalio.DigitalInOut(RESET_PIN)
-rfm9x = adafruit_rfm9x.RFM9x(spi, cs, reset, RADIO_FREQ_MHZ)
-rfm9x.tx_power = 23  # Set transmit power (max 23 dBm)
-print("LoRa bridge started. Waiting for packets...")
-
-# ==================== ACK FUNCTION ====================
-def send_ack(seq):
-    ack_message = f"ACK:{seq}"
-    rfm9x.send(ack_message.encode())
-    print(f"Sent ACK for seq {seq}")
-
-# ==================== MAIN RECEIVE LOOP ====================
-while True:
-    packet = rfm9x.receive(timeout=5.0)
-    if packet is None:
-        continue
-    
-    try:
-        raw_str = packet.decode('utf-8').strip()
-    except UnicodeDecodeError:
-        print("Received non-UTF8 packet, ignoring")
-        continue
-    
-    print(f"Received: {raw_str}")
-    
-    result, error = decrypt_payload(raw_str, AES_KEY)
-    if result is None:
-        print(f"Decryption failed: {error}")
-        continue
-    
-    seq, message = result
-    source = "cardputer"
-    
-    # Replay protection
-    if seq <= last_seq.get(source, 0):
-        print(f"Replay attack detected! seq={seq} <= last_seq={last_seq[source]}. Ignoring.")
-        continue
-    
-    last_seq[source] = seq
-    
-    payload = {
-        "seq": seq,
-        "message": message,
-        "source": source,
-        "timestamp": time.time()
-    }
-    
-    try:
-        resp = requests.post(RECEIVER_URL, json=payload, timeout=5)
-        if resp.status_code == 200:
-            print(f"Message accepted by receiver (seq {seq})")
-            send_ack(seq)
-        else:
-            print(f"Receiver returned error {resp.status_code}: {resp.text}")
-    except requests.exceptions.RequestException as e:
-        print(f"Failed to contact receiver service: {e}")
-    
-    time.sleep(0.1)
-```
 
 ### 3.3. Run as a Systemd Service
 To ensure the bridge starts automatically on boot and restarts if it crashes, create a systemd service.
@@ -323,21 +243,33 @@ kubectl logs -n lora-demo deployment/lora-receiver
 Storing the AES key in plaintext in your scripts is a significant security risk. Use Kubernetes Secrets for secure management.
 
 ### 5.1. Create the Secret
-Encode your 32-byte AES key in base64 and create the secret.
+Generate a 32-byte key and store it as the Kubernetes secret **`lora-encryption-key`** in the `lora-demo` namespace. The bridge script reads this secret at startup via `kubectl` — do not hardcode the key in the script.
+
 ```bash
-# Generate a secure key (or use your existing one)
-openssl rand -base64 32
-# Create the secret
-kubectl create secret generic lora-aes-key \
+# Create the namespace if it does not exist
+kubectl create namespace lora-demo --dry-run=client -o yaml | kubectl apply -f -
+
+# Generate and store the key in one step
+kubectl create secret generic lora-encryption-key \
   --namespace lora-demo \
-  --from-literal=key='your-base64-encoded-key-here'
+  --from-literal=key="$(openssl rand -base64 32)"
+
+# Verify
+kubectl get secret lora-encryption-key -n lora-demo
 ```
+
+> **Cardputer key sync:** The firmware has the key compiled in. After creating the secret, get the raw hex bytes to paste into `src/main.cpp`:
+> ```bash
+> kubectl get secret lora-encryption-key -n lora-demo \
+>   -o jsonpath='{.data.key}' | base64 -d | xxd -i
+> ```
+> Replace the `aes_key[32]` array and reflash the Cardputer.
 
 ### 5.2. Mount the Secret in the Receiver Pod
 Update the `receiver_service.yaml` to mount the secret as an environment variable or a volume. The example above uses the key directly, but for production, you would modify the Python command to read from the mounted secret.
 
 ### 5.3. Access the Secret from the Bridge
-The bridge script on the worker node should retrieve the key from the Kubernetes API instead of hardcoding it. You can use `kubectl` or the Kubernetes Python client to fetch the secret on startup, but this requires giving the node appropriate RBAC permissions.
+The bridge script (`LoRa-Bridge.py`) already retrieves the key via `kubectl get secret lora-encryption-key -n lora-demo` at startup. Ensure `kubectl` is installed on `worker1` and the node's kubeconfig can reach the K3s API server (`/etc/rancher/k3s/k3s.yaml` or a copy with the correct server IP).
 
 ---
 
@@ -364,11 +296,11 @@ Temporarily disable the receiver service (e.g., `kubectl scale deployment lora-r
 
 ## 7. Troubleshooting Common Issues
 
-### The LoRa HAT is not detected (`spidev` devices missing).
-*   **Solution**: Ensure SPI is enabled (`raspi-config`). Verify the HAT is fully seated. Check the chip select pin in your code (`board.CE0`).
+### The LoRa HAT is not responding (no data on `/dev/ttyAMA0`).
+*   **Solution**: Ensure UART is enabled and the serial console is disabled in `raspi-config` (Interface Options → Serial Port). Confirm `/dev/ttyAMA0` exists after reboot. If the device node exists but reads nothing, reseat the HAT and run `configure_e22.py` to set the module's registers.
 
-### `adafruit_rfm9x.RFM9x` initialization fails.
-*   **Solution**: Double-check your pin assignments (CS, RESET). Ensure no other process is using the SPI bus. Check the radio frequency matches your HAT and regional regulations (915 MHz for North America).
+### Bridge script exits immediately at startup.
+*   **Solution**: The bridge calls `kubectl` at startup to retrieve the AES key. Ensure `kubectl` is installed on `worker1` and the secret exists: `kubectl get secret lora-encryption-key -n lora-demo`. If missing, create it (see §5.1). Also ensure the kubeconfig on `worker1` points to the correct master IP (`10.0.10.94:6443`).
 
 ### Decryption fails with "Invalid padding".
 *   **Solution**: This often indicates the AES key on the bridge does not match the key on the Cardputer. Verify the 32-byte key is identical in both places. Also, ensure the Cardputer's firmware is using the same CBC mode and PKCS#7 padding.
