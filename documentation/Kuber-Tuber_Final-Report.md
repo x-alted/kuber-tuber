@@ -754,31 +754,115 @@ The following appendices provide supplementary material referenced throughout th
 
 **Appendix A: Hardware Photographs**
 
-*Note: The actual photographs are inserted here in the final document. The following descriptions indicate what each image shows.*
+**Figure A.1 – LoRa HAT on worker1 (hardware close-up)**
 
-**Figure A.1 – Complete Hub Assembly**  
-A photograph showing all hardware components connected and powered: the MeLE Quieter 4C Mini PC, three Raspberry Pi 4 workers, the dedicated router Pi, the NETGEAR GS305E managed switch, and the Waveshare SX1262 LoRa HAT attached to worker1. Ethernet cables are visible connecting each device to the switch.
+![LoRa HAT hardware](assets/lora-hat-hardware.jpg)
 
-**Figure A.2 – Cardputer Field Node**  
-A close-up of the Cardputer ADV with the attached LoRa module. The screen displays the firmware version and the current sequence number. The keyboard and antenna are clearly visible.
+*The Waveshare E22-900T22S SX1262 LoRa HAT seated on worker1 (Raspberry Pi 4). The blue tape secures the Ethernet dongle used before the VLAN migration. Photographed April 8, 2026 — the day before the final presentation.*
 
-**Figure A.3 – Router Pi and Switch Detail**  
-A photograph showing the Raspberry Pi router and the managed switch, with labels indicating the trunk port (to the router) and access ports (to the Mini PC and workers). The VLAN configuration is annotated.
+---
 
-**Figure A.4 – Team at Work (Milestone)**  
-A photograph taken during a Friday work session at Nathan's home, showing the team troubleshooting the LoRa HAT detection. Laptops, the cluster hardware, and a terminal screen showing SPI detection are visible.
+**Figure A.2 – LoRa HAT powered (LED confirmation)**
 
-**Figure A.5 – Rancher Dashboard**  
-A screenshot of the Rancher UI showing all four nodes in the cluster with a Ready status, CPU and memory usage, and the lora-demo namespace with the running receiver pod.
+![LoRa HAT LED](assets/lora-hat-led.jpg)
 
-**Figure A.6 – Cardputer Sending a Message**  
-A sequence of two photographs: the first shows the user typing "Hello Kuber-Tuber" on the Cardputer keyboard; the second shows the device screen with a green flash indicating successful ACK.
+*The LoRa HAT on worker1 with its red status LED lit, confirming the module is powered and the UART serial interface is active.*
 
-**Figure A.7 – Receiver Log Output**  
-A screenshot of a terminal window running kubectl logs \-f deployment/lora-receiver, displaying the accepted message with timestamp, sequence number, and source.
+---
 
-**Figure A.8 – Worker Failure Demonstration**  
-A photograph showing worker2 powered off (LEDs off) while the Rancher dashboard on a laptop screen shows the node as NotReady. A second terminal shows the nginx pod rescheduled to worker3.
+**Figure A.3 – Early flat-network setup session**
+
+![Flat network setup](assets/flat-network-setup.jpg)
+
+*A Friday work session showing multiple SSH terminals open simultaneously: an ARP scan of the flat 192.168.2.0/24 network (left), worker node SSH sessions (centre and right), and the cluster being assembled before the VLAN migration.*
+
+---
+
+**Figure A.4 – worker1 SSH session (flat network, early setup)**
+
+![worker1 SSH flat network](assets/worker1-ssh-flat-network.jpg)
+
+*SSH into worker1 at 192.168.2.208 during the initial flat-network phase (March 6, 2026). The `ip a` output confirms network interface configuration before static IPs and VLANs were applied.*
+
+---
+
+**Figure A.5 – Rancher Nodes dashboard (final cluster state)**
+
+![Rancher Nodes final](assets/rancher-nodes-final.png)
+
+*Rancher Nodes view showing all four nodes Active with their final post-rebuild IPs: `debian-master` at 10.0.10.94 (control-plane), `worker1` at 10.0.20.138, `worker2` at 10.0.20.150, and `worker3` at 10.0.20.63. K3s v1.34.6+k3s1.*
+
+---
+
+**Figure A.6 – Rancher Cluster Dashboard**
+
+![Rancher cluster dashboard](assets/rancher-cluster-dashboard.png)
+
+*The Rancher Cluster Dashboard displaying 4 nodes, 370 total resources, and 17 deployments. CPU and memory utilisation are nominal. The Etcd, Scheduler, Controller Manager, and Fleet components are all healthy.*
+
+---
+
+**Figure A.7 – lora-receiver deployment in Rancher**
+
+![Rancher lora-receiver deployment](assets/rancher-lora-receiver.png)
+
+*Rancher showing the `lora-receiver` deployment in the `lora-demo` namespace — Active, 1/1 pods Ready, running on `debian-master` (node IP 10.42.0.44). This confirms the receiver pod was healthy at the time of the final presentation.*
+
+---
+
+**Figure A.8 – kubectl get nodes (all Ready)**
+
+![kubectl get nodes](assets/kubectl-get-nodes.png)
+
+*Terminal output of `kubectl get nodes` from the master node, confirming all four nodes are in `Ready` state at K3s version v1.34.6+k3s1.*
+
+---
+
+**Figure A.9 – ARP scan of VLAN network (final)**
+
+![ARP scan VLAN](assets/arp-scan-vlan.png)
+
+*Output of `arp-scan` after the VLAN migration, showing the final node IPs with labels: MiniPC at 10.0.10.78, worker1 at 10.0.10.74, worker2 at 10.0.10.132, worker3 at 10.0.10.196. Used to verify DHCP leases and MAC address assignments.*
+
+---
+
+**Figure A.10 – ARP scan during flat-network phase**
+
+![ARP scan flat network](assets/arp-scan-flat-network.png)
+
+*Early network discovery scan from the router Pi on the flat 192.168.2.0/24 network (April 2, 2026), capturing 87 ARP packets from 6 hosts including Raspberry Pi nodes and the NETGEAR switch.*
+
+---
+
+**Figure A.11 – Rancher Nodes (early — pre-VLAN, Ubuntu VM present)**
+
+![Rancher nodes early](assets/rancher-nodes-early.jpg)
+
+*Rancher Nodes view from the initial deployment (March 13, 2026), showing the cluster before the VLAN migration and second rebuild. The separate Ubuntu VM (`kuberserver`) is visible as a node — this was later removed, with Rancher redeployed directly on K3s.*
+
+---
+
+**Figure A.12 – worker2 SSH join session**
+
+![worker2 SSH join](assets/worker2-ssh-join.jpg)
+
+*SSH terminal showing worker2 joining the K3s cluster during early setup. The `ip a` output confirms the node received its IP address correctly.*
+
+---
+
+**Figure A.13 – debian-master system monitor (htop)**
+
+![debian-master htop](assets/debian-master-htop.jpg)
+
+*`htop` running on `debian-master`, showing K3s control-plane processes, systemd services, and memory usage during normal cluster operation.*
+
+---
+
+**Figure A.14 – Project logo**
+
+![Kuber-Tuber logo](assets/logo-banner.png)
+
+*The Kuber-Tuber project banner: "Off-Grid. Encrypted. Self-Healing."*
 
 **Appendix B: Bill of Materials (Detailed)**
 
