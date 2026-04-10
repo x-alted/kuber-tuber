@@ -117,11 +117,38 @@ sudo tailscale up
 
 ### LoRa HAT on `worker1` (`10.0.20.138`)
 
-- **Hardware:** Waveshare E22-900T22S (SX1262, 915 MHz); communicates via UART at `/dev/ttyAMA0`, 9600 baud.
+- **Hardware:** Waveshare E22-900T22S (SX1262, 868 MHz); communicates via UART at `/dev/ttyAMA0`, 9600 baud.
 - **Bridge script:** `LoRa/gateway/LoRa-Bridge.py` — run as systemd service `lora-bridge.service`.
 - **Dependencies:** `pip install pyserial pycryptodome requests` (see `LoRa/gateway/requirements.txt`).
 - **Bridge script path on device:** `/home/pi/lora-bridge/LoRa-Bridge.py` (or per deployment location).
 - **Logs:** `journalctl -u lora-bridge -f`
+
+### AES-256 Encryption Key — Kubernetes Secret
+
+The bridge script retrieves the key from a Kubernetes secret at startup. Create it once after the cluster is running:
+
+```bash
+# Create the lora-demo namespace if it does not exist yet
+kubectl create namespace lora-demo --dry-run=client -o yaml | kubectl apply -f -
+
+# Generate a random 32-byte key and store it as a secret
+kubectl create secret generic lora-encryption-key \
+  --namespace lora-demo \
+  --from-literal=key="$(openssl rand -base64 32)"
+
+# Confirm it was created
+kubectl get secret lora-encryption-key -n lora-demo
+```
+
+> **Cardputer key sync:** The same key must be compiled into the Cardputer firmware.  
+> Retrieve the raw hex bytes to copy into `src/main.cpp`:
+> ```bash
+> kubectl get secret lora-encryption-key -n lora-demo \
+>   -o jsonpath='{.data.key}' | base64 -d | xxd -i
+> ```
+> Replace the `aes_key[32]` array in the firmware with the output, then reflash the Cardputer.
+
+
 
 ### Cardputer ADV (Field Node)
 
