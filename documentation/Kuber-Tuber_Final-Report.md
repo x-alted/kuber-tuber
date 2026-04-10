@@ -754,7 +754,16 @@ The following appendices provide supplementary material referenced throughout th
 
 **Appendix A: Hardware Photographs**
 
-**Figure A.1 – LoRa HAT on worker1 (hardware close-up)**
+**Figure A.2 – Complete Hub Assembly**
+
+![Complete hub assembly](assets/cluster.jpg)
+
+*The complete Kuber-Tuber cluster hub: three Raspberry Pi 4 worker nodes (left), the MeLE Quieter 4C Mini PC master node (top centre), the NETGEAR GS305E 5-port managed switch (bottom centre), and the Raspberry Pi 4 router node (right). All connected via Cat6 Ethernet. Photographed April 9, 2026 — the day of the final presentation.*
+
+---
+
+
+**Figure A.2 – LoRa HAT on worker1 (hardware close-up)**
 
 ![LoRa HAT hardware](assets/lora-hat-hardware.jpg)
 
@@ -762,7 +771,7 @@ The following appendices provide supplementary material referenced throughout th
 
 ---
 
-**Figure A.2 – LoRa HAT powered (LED confirmation)**
+**Figure A.3 – LoRa HAT powered (LED confirmation)**
 
 ![LoRa HAT LED](assets/lora-hat-led.jpg)
 
@@ -770,7 +779,7 @@ The following appendices provide supplementary material referenced throughout th
 
 ---
 
-**Figure A.3 – Early flat-network setup session**
+**Figure A.4 – Early flat-network setup session**
 
 ![Flat network setup](assets/flat-network-setup.jpg)
 
@@ -778,7 +787,7 @@ The following appendices provide supplementary material referenced throughout th
 
 ---
 
-**Figure A.4 – worker1 SSH session (flat network, early setup)**
+**Figure A.5 – worker1 SSH session (flat network, early setup)**
 
 ![worker1 SSH flat network](assets/worker1-ssh-flat-network.jpg)
 
@@ -786,7 +795,7 @@ The following appendices provide supplementary material referenced throughout th
 
 ---
 
-**Figure A.5 – Rancher Nodes dashboard (final cluster state)**
+**Figure A.6 – Rancher Nodes dashboard (final cluster state)**
 
 ![Rancher Nodes final](assets/rancher-nodes-final.png)
 
@@ -794,7 +803,7 @@ The following appendices provide supplementary material referenced throughout th
 
 ---
 
-**Figure A.6 – Rancher Cluster Dashboard**
+**Figure A.7 – Rancher Cluster Dashboard**
 
 ![Rancher cluster dashboard](assets/rancher-cluster-dashboard.png)
 
@@ -802,7 +811,7 @@ The following appendices provide supplementary material referenced throughout th
 
 ---
 
-**Figure A.7 – lora-receiver deployment in Rancher**
+**Figure A.8 – lora-receiver deployment in Rancher**
 
 ![Rancher lora-receiver deployment](assets/rancher-lora-receiver.png)
 
@@ -810,7 +819,7 @@ The following appendices provide supplementary material referenced throughout th
 
 ---
 
-**Figure A.8 – kubectl get nodes (all Ready)**
+**Figure A.9 – kubectl get nodes (all Ready)**
 
 ![kubectl get nodes](assets/kubectl-get-nodes.png)
 
@@ -818,7 +827,7 @@ The following appendices provide supplementary material referenced throughout th
 
 ---
 
-**Figure A.9 – ARP scan of VLAN network (final)**
+**Figure A.10 – ARP scan of VLAN network (final)**
 
 ![ARP scan VLAN](assets/arp-scan-vlan.png)
 
@@ -826,7 +835,7 @@ The following appendices provide supplementary material referenced throughout th
 
 ---
 
-**Figure A.10 – ARP scan during flat-network phase**
+**Figure A.11 – ARP scan during flat-network phase**
 
 ![ARP scan flat network](assets/arp-scan-flat-network.png)
 
@@ -834,7 +843,7 @@ The following appendices provide supplementary material referenced throughout th
 
 ---
 
-**Figure A.11 – Rancher Nodes (early — pre-VLAN, Ubuntu VM present)**
+**Figure A.12 – Rancher Nodes (early — pre-VLAN, Ubuntu VM present)**
 
 ![Rancher nodes early](assets/rancher-nodes-early.jpg)
 
@@ -842,7 +851,7 @@ The following appendices provide supplementary material referenced throughout th
 
 ---
 
-**Figure A.12 – worker2 SSH join session**
+**Figure A.13 – worker2 SSH join session**
 
 ![worker2 SSH join](assets/worker2-ssh-join.jpg)
 
@@ -850,7 +859,7 @@ The following appendices provide supplementary material referenced throughout th
 
 ---
 
-**Figure A.13 – debian-master system monitor (htop)**
+**Figure A.14 – debian-master system monitor (htop)**
 
 ![debian-master htop](assets/debian-master-htop.jpg)
 
@@ -858,7 +867,7 @@ The following appendices provide supplementary material referenced throughout th
 
 ---
 
-**Figure A.2 (updated) – Cardputer ADV field node — Ready and Sending states**
+**Figure A.15 – Cardputer ADV field node — Ready and Sending states**
 
 ![Cardputer ready and sending](assets/cardputer-ready-sending.png)
 
@@ -866,11 +875,51 @@ The following appendices provide supplementary material referenced throughout th
 
 ---
 
-**Figure A.14 – Project logo**
+**Figure A.16 – Project logo**
 
 ![Kuber-Tuber logo](assets/logo-banner.png)
 
 *The Kuber-Tuber project banner: "Off-Grid. Encrypted. Self-Healing."*
+
+**Figure A.17 – Cluster enclosure concept (3D render)**
+
+![Cluster enclosure design](assets/cluster-enclosure-design.png)
+
+*Early 3D model render of the planned custom enclosure for the Kuber-Tuber cluster. The red box represents the outer shell; the stacked units beside it represent the Pi nodes in rack formation. Designed in anticipation of a future 3D-printed housing.*
+
+---
+
+**Figure A.18 – Cluster enclosure with rack module (exploded view)**
+
+![Cluster enclosure exploded](assets/cluster-enclosure-exploded.png)
+
+*3D model showing the enclosure shell alongside a multi-shelf rack tower (magenta vertical frame with orange support poles) housing the Pi boards. This render illustrates the intended capacity and layout of the planned housing.*
+
+---
+
+**Figure A.19 – Rack module close-up (3D render)**
+
+![Cluster enclosure rack closeup](assets/cluster-enclosure-rack-closeup.png)
+
+*Close-up of the rack module showing individual Pi board slots across four shelves with orange support columns and red base. Each shelf is sized to accommodate a Raspberry Pi 4 with clearance for cabling.*
+
+---
+
+**Figure A.20 – Full rack assembly render**
+
+![Cluster rack render](assets/cluster-rack-render.png)
+
+*3D render of the assembled rack from the front: three Pi nodes and the NETGEAR GS305E switch visible across the shelves, with orange/blue support columns and a red top plate. This was the design phase prior to fabrication.*
+
+---
+
+**Figure A.21 – Rack assembly render (side perspective)**
+
+![Cluster rack render 2](assets/cluster-rack-render2.png)
+
+*Side-angle 3D render of the single-row rack platform showing the switch bay at the bottom and Pi mounting rails above, with blue corner columns and a red platform shelf.*
+
+---
 
 **Appendix B: Bill of Materials (Detailed)**
 
