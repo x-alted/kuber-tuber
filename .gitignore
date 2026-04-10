@@ -1,0 +1,44 @@
+# Kubernetes credentials
+kubeconfig
+*.kubeconfig
+.kube/
+/etc/rancher/
+
+# SSH keys
+*.pem
+*.key
+id_rsa
+id_ed25519
+*.pub
+
+# Secrets and env files
+.env
+*.env
+secrets/
+secret.yaml
+*-secret.yaml
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# PlatformIO build artifacts
+LoRa/cardputer/.pio/
+LoRa/cardputer/.pioenvs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Logs
+*.log
