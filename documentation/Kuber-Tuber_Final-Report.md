@@ -858,6 +858,14 @@ The following appendices provide supplementary material referenced throughout th
 
 ---
 
+**Figure A.2 (updated) – Cardputer ADV field node — Ready and Sending states**
+
+![Cardputer ready and sending](assets/cardputer-ready-sending.png)
+
+*Composite photograph from the final presentation slides showing the Cardputer ADV display in two states: left panel shows the firmware boot screen ("Ready"), right panel shows an active send ("SRC: SEC Group Alarm #1 — Sending…"). These are the development-phase photos referenced in Section 10.3 as the fallback shown to the audience when the live LoRa link could not be demonstrated.*
+
+---
+
 **Figure A.14 – Project logo**
 
 ![Kuber-Tuber logo](assets/logo-banner.png)
