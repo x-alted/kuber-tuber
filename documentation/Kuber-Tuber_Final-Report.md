@@ -1305,9 +1305,37 @@ This publication defines the CBC (Cipher Block Chaining) mode of operation for A
 **Large Language Model Assistance**  
 During development, the team used large language models (LLMs) to generate code templates, refine Python scripts for the LoRa bridge, and structure the Cardputer firmware. All AI-generated code was manually reviewed, stress-tested, and commented before deployment. The specific models used were accessed via standard web interfaces, and no proprietary or unpublished models were employed. The AI-assisted code includes the AES-256-CBC encryption and decryption functions, the Flask receiver service, and the systemd service unit file.
 
-5. ### 
+5. ### **Formative & Inspirational References**
 
-   6. ### **Official Documentation & Primary Sources**
+**NetworkChuck — "I built a Raspberry Pi SUPER COMPUTER!! // ft. Kubernetes (k3s cluster)"**  
+This YouTube video by NetworkChuck was the primary inspiration for the Kuber-Tuber project. It demonstrated running a K3s Kubernetes cluster on Raspberry Pi hardware and motivated the team to pursue a similar build with added security and LoRa integration.  
+[https://youtu.be/X9fSMGkjtug](https://youtu.be/X9fSMGkjtug)
+
+**Crosstalk Solutions — "Meshtastic: Build Your Own Private Off-Grid Network!"**  
+This YouTube video introduced the team to Meshtastic and the broader concept of off-grid, encrypted long-range radio communication using LoRa. It directly shaped the project's goal of replacing internet-dependent communication with a self-contained encrypted LoRa link.  
+[https://m.youtube.com/watch?v=cHX09AZ0vIA](https://m.youtube.com/watch?v=cHX09AZ0vIA)
+
+**Yosensi — "What is the real range of LoRa?"**  
+This article was used during project planning to understand realistic LoRa range expectations under different spreading factors, environments, and antenna configurations. It informed the team's decision to use SF9 for a balance of range and data rate.  
+[https://yosensi.io/posts/what_is_the_real_range_of_lora/](https://yosensi.io/posts/what_is_the_real_range_of_lora/)
+
+**MDPI Electronics — LoRa Technology Overview**  
+An academic paper from the MDPI Electronics journal referenced during the research phase to understand LoRa's modulation characteristics, link budget, and suitability for IoT applications compared to competing LPWAN technologies.  
+[https://www.mdpi.com/2079-9292/5/4/67](https://www.mdpi.com/2079-9292/5/4/67)
+
+**Matrix.org — Matrix Protocol**  
+The Matrix open protocol for decentralised communications was evaluated early in the project as a potential user-facing interface for LoRa messages. A Matrix bridge (forwarding LoRa messages to a Matrix room via Dendrite) was planned but deprioritised in favour of completing the core encrypted pipeline. It remains a candidate for future work (see Section 8.1).  
+[https://matrix.org/](https://matrix.org/)
+
+**WireGuard — Fast, Modern, Secure VPN Tunnel**  
+WireGuard was considered during the security design phase as a mechanism to encrypt node-to-node traffic within the cluster. The team ultimately relied on Kubernetes network policies and VLAN isolation instead, but WireGuard remains a future hardening option.  
+[https://www.wireguard.com/](https://www.wireguard.com/)
+
+**MeshCore**  
+A Meshtastic-derived open-source LoRa protocol evaluated as an alternative to building a custom LoRa communication stack. The team chose a custom implementation (LoRa-Bridge.py + Cardputer firmware) to maintain full control over encryption and packet format.  
+[https://meshcore.co.uk/](https://meshcore.co.uk/)
+
+6. ### **Official Documentation & Primary Sources**
 
 **K3s Lightweight Kubernetes** [https://docs.k3s.io](https://docs.k3s.io/)
 
