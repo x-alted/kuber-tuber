@@ -43,14 +43,14 @@
 
 | Device          | Local IP          | Hostname       | Role                                      |
 |----------------|-------------------|----------------|-------------------------------------------|
-| Mini PC        | 10.0.10.201       | debian-master  | K3s master + Rancher (no separate VM)    |
-| worker1        | 10.0.20.208       | worker1        | K3s worker, **LoRa gateway**             |
-| worker2        | 10.0.20.207       | worker2        | K3s worker                                |
-| worker3        | 10.0.20.202       | worker3        | K3s worker                                |
+| Mini PC        | 10.0.10.94       | debian-master  | K3s master + Rancher (no separate VM)    |
+| worker1        | 10.0.20.138       | worker1        | K3s worker, **LoRa gateway**             |
+| worker2        | 10.0.20.150       | worker2        | K3s worker                                |
+| worker3        | 10.0.20.63       | worker3        | K3s worker                                |
 | Router Pi      | 10.0.10.1 / 10.0.20.1 | router-pi | Inter‑VLAN routing, DHCP, firewall |
 | Managed Switch | 10.0.0.2          | GS305E         | VLAN trunk & access ports                 |
 
-**Rancher UI:** `https://10.0.10.201:30443` (running directly on Mini PC master – Ubuntu VM removed)
+**Rancher UI:** `https://10.0.10.94:30443` (running directly on Mini PC master – Ubuntu VM removed)
 
 ---
 
@@ -66,7 +66,7 @@
 | Power & Boot         | Powers on reliably via wall adapter and power bank.                                                                                                                                                                                                                                                                                                                                                                                        | Power output.                 | [x]       |
 | OS Confirmation      | Confirm that Debian 13 is installed and updated.                                                                                                                                                                                                                                                                                                                                                                                           |                               | [x]       |
 | User and Pass        | **Username:** cluster16gb (secure password stored separately)                                                                                                                                                                                                                                                                                                                                                                              |                               | [x]       |
-| Network Connectivity | - Ethernet link established to NETGEAR switch (link light active).<br>- Static IP configured and persists across reboots.<br>**Current IP:** 10.0.10.201/24, gateway 10.0.10.1.                                                                                                                                                                                                                                                            |                               | [x]       |
+| Network Connectivity | - Ethernet link established to NETGEAR switch (link light active).<br>- Static IP configured and persists across reboots.<br>**Current IP:** 10.0.10.94/24, gateway 10.0.10.1.                                                                                                                                                                                                                                                            |                               | [x]       |
 | SSH Access           | SSH daemon running. Pre‑shared team SSH key added to `~/.ssh/authorized_keys`. Password authentication disabled.                                                                                                                                                                                                                                                                                                                           |                               | [x]       |
 | Basic Hardening      | UFW firewall enabled, default deny incoming, allow SSH (port 22) and K3s API (6443) from control plane (10.0.10.0/24). Fail2ban installed.                                                                                                                                                                                                                                                                                                 |                               | [x]       |
 
@@ -83,7 +83,7 @@
 | Imaging          | Raspberry Pi OS Lite (64-bit) flashed to SD card using official imager.                                                           |           | [x]       |
 | Hostname         | Hostname for Pi #1: **worker1**                                                                                                   |           | [x]       |
 | Boot & Setup     | SSH enabled via userconf or raspi-config. Wi-Fi is disabled.                                                                      |           | [x]       |
-| IP Assignment    | Static IP configured in `/etc/dhcpcd.conf`: `10.0.20.208/24`, gateway `10.0.20.1`.                                                |           | [x]       |
+| IP Assignment    | Static IP configured in `/etc/dhcpcd.conf`: `10.0.20.138/24`, gateway `10.0.20.1`.                                                |           | [x]       |
 | SSH & Keys       | Accessible via SSH. Team SSH key deployed, password authentication disabled.                                                      |           | [x]       |
 | Updates & Basics | System updated. Hostname set uniquely. UFW allow SSH from 10.0.10.0/24.                                                           |           | [x]       |
 
@@ -98,7 +98,7 @@
 | Imaging          | Raspberry Pi OS Lite (64-bit) flashed to SD card using official imager.                                                           |           | [x]       |
 | Hostname         | Hostname for Pi #2: **worker2**                                                                                                   |           | [x]       |
 | Boot & Setup     | SSH enabled via userconf or raspi-config. Wi-Fi is disabled.                                                                      |           | [x]       |
-| IP Assignment    | Static IP: `10.0.20.207/24`, gateway `10.0.20.1`.                                                                                 |           | [x]       |
+| IP Assignment    | Static IP: `10.0.20.150/24`, gateway `10.0.20.1`.                                                                                 |           | [x]       |
 | SSH & Keys       | Accessible via SSH. Team SSH key deployed, password authentication disabled.                                                      |           | [x]       |
 | Updates & Basics | System updated. Hostname set uniquely.                                                                                            |           | [x]       |
 
@@ -113,7 +113,7 @@
 | Imaging          | Raspberry Pi OS Lite (64-bit) flashed to SD card using official imager.                                                           |           | [x]       |
 | Hostname         | Hostname for Pi #3: **worker3**                                                                                                   |           | [x]       |
 | Boot & Setup     | SSH enabled via userconf or raspi-config. Wi-Fi is disabled.                                                                      |           | [x]       |
-| IP Assignment    | Static IP: `10.0.20.202/24`, gateway `10.0.20.1`.                                                                                 |           | [x]       |
+| IP Assignment    | Static IP: `10.0.20.63/24`, gateway `10.0.20.1`.                                                                                 |           | [x]       |
 | SSH & Keys       | Accessible via SSH. Team SSH key deployed, password authentication disabled.                                                      |           | [x]       |
 | Updates & Basics | System updated. Hostname set uniquely.                                                                                            |           | [x]       |
 
@@ -150,7 +150,7 @@
 | iptables Forwarding Rules    | Default DROP on FORWARD. Allow SSH (port 22) from 10.0.10.0/24 to 10.0.20.0/24. Allow established/related.                                                                                                                                                                                                       |                                 | [x]       |
 | NAT (optional)               | `sudo iptables -t nat -A POSTROUTING -o eth1 -j MASQUERADE` for internet access (removed for offline demo).                                                                                                                                                                                                      |                                 | [x]       |
 | Save Rules                   | `sudo netfilter-persistent save`.                                                                                                                                                                                                                                                                                 |                                 | [x]       |
-| Verification                 | From Mini PC, ping `10.0.10.1` and `10.0.20.208`. From worker1, ping `10.0.20.1` and `10.0.10.201`.                                                                                                                                                                                                               |                                 | [x]       |
+| Verification                 | From Mini PC, ping `10.0.10.1` and `10.0.20.138`. From worker1, ping `10.0.20.1` and `10.0.10.94`.                                                                                                                                                                                                               |                                 | [x]       |
 
 ### 1.5 Managed Switch (NETGEAR GS305E)
 
@@ -171,7 +171,7 @@
 | Port PVID                    | Port 1: 1 (or 1). Port 2: 10. Ports 3‑5: 20.                                                                                                                                                                                                                                                                      |                                 | [x]       |
 | Default VLAN 1               | Set all ports to "U" for VLAN 1 except port 1 (management).                                                                                                                                                                                                                                                       |                                 | [x]       |
 | Save Configuration           | Click **Apply** on all changes. Settings persist through power cycle.                                                                                                                                                                                                                                             |                                 | [x]       |
-| Connectivity Matrix Test     | From Mini PC (10.0.10.201), ping router (10.0.10.1) and workers (10.0.20.208, .207, .202). From workers, ping Mini PC. All succeed.                                                                                                              |                                 | [x]       |
+| Connectivity Matrix Test     | From Mini PC (10.0.10.94), ping router (10.0.10.1) and workers (10.0.20.138, .207, .202). From workers, ping Mini PC. All succeed.                                                                                                              |                                 | [x]       |
 
 ### 1.6 K3s Cluster & Rancher
 
@@ -183,7 +183,7 @@
 | **Uninstall Old K3s**            | On master: `sudo /usr/local/bin/k3s-uninstall.sh`. On each worker: `sudo /usr/local/bin/k3s-agent-uninstall.sh`.                                                                                                                                                                                                 |                                                                                                                 | [x]       |
 | **Install K3s on Master**        | `curl -sfL https://get.k3s.io | sh -`. Verify `sudo systemctl status k3s`.                                                                                                                                                                                                                                    |                                                                                                                 | [x]       |
 | **Get Node Token**               | `sudo cat /var/lib/rancher/k3s/server/node-token`. Store securely.                                                                                                                                                                                                                                                |                                                                                                                 | [x]       |
-| **Join Worker Nodes**            | On each worker: `curl -sfL https://get.k3s.io | K3S_URL=https://10.0.10.201:6443 K3S_TOKEN=<token> sh -`.                                                                                                                                                                                                                          |                                                                                                                 | [x]       |
+| **Join Worker Nodes**            | On each worker: `curl -sfL https://get.k3s.io | K3S_URL=https://10.0.10.94:6443 K3S_TOKEN=<token> sh -`.                                                                                                                                                                                                                          |                                                                                                                 | [x]       |
 | **Verify Cluster Health**        | `sudo kubectl get nodes -o wide` shows all 4 nodes `Ready` with correct IPs. CoreDNS pods running.                                                                                                                                                                                                               |                                                                                                                 | [x]       |
 | **Copy Kubeconfig to Master**    | Already at `/etc/rancher/k3s/k3s.yaml`. No separate VM.                                                                                                                                                                                                                                                           |                                                                                                                 | [x]       |
 | **Install Helm**                 | `curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash`. `helm version`.                                                                                                                                                                                                                             |                                                                                                                 | [x]       |
@@ -191,7 +191,7 @@
 | **Install Rancher**              | `helm repo add rancher-latest https://releases.rancher.com/server-charts/latest`. `helm repo update`. `helm install rancher rancher-latest/rancher --namespace cattle-system --create-namespace --set hostname=rancher.kuber-tuber.local --set replicas=1 --set bootstrapPassword=admin`.                      | If name in use, uninstall previous and delete Helm secrets.                                                     | [x]       |
 | **Wait for Rancher rollout**     | `kubectl -n cattle-system rollout status deploy/rancher`.                                                                                                                                                                                                                                                         |                                                                                                                 | [x]       |
 | **Get Rancher service NodePort** | `kubectl get svc -n cattle-system rancher` shows `443:30443/TCP`.                                                                                                                                                                                                                                                 |                                                                                                                 | [x]       |
-| **Access Rancher UI**            | Browser to `https://10.0.10.201:30443`. Accept self‑signed certificate. Login page loads.                                                                                                                                                                                                                         |                                                                                                                 | [x]       |
+| **Access Rancher UI**            | Browser to `https://10.0.10.94:30443`. Accept self‑signed certificate. Login page loads.                                                                                                                                                                                                                         |                                                                                                                 | [x]       |
 | **Retrieve admin password**      | `kubectl get secret -n cattle-system bootstrap-secret -o go-template='{{.data.bootstrapPassword\|base64decode}}'`.                                                                                                                                                                                               |                                                                                                                 | [x]       |
 | **Log in to Rancher**            | Successfully log in with username `admin`. Change password if prompted.                                                                                                                                                                                                                                          |                                                                                                                 | [x]       |
 | **Import existing K3s cluster**  | In Rancher UI, click **Import Existing**, name cluster (e.g., `k3s-cluster`), run the provided `kubectl` command on Mini PC. Cluster appears active.                                                                                                                                                              |                                                                                                                 | [x]       |
@@ -222,7 +222,7 @@
 **Completed by:** Anthony  
 **Date:** April 6, 2026
 
-| From/To        | Mini PC (10.0.10.201) | worker1 (10.0.20.208) | worker2 (10.0.20.207) | worker3 (10.0.20.202) |
+| From/To        | Mini PC (10.0.10.94) | worker1 (10.0.20.138) | worker2 (10.0.20.150) | worker3 (10.0.20.63) |
 |----------------|-----------------------|-----------------------|-----------------------|-----------------------|
 | **Mini PC**    | N/A                   | [x]                   | [x]                   | [x]                   |
 | **worker1**    | [x]                   | N/A                   | [x]                   | [x]                   |
@@ -384,12 +384,12 @@ All cross‑VLAN pings succeed (router forwards allowed traffic). Inter‑VLAN S
 - **Accomplishments:**
   - K3s cluster completely rebuilt with new IPs:
     - Uninstalled old K3s from all nodes.
-    - Fresh install on Mini PC master (10.0.10.201).
+    - Fresh install on Mini PC master (10.0.10.94).
     - Re‑joined worker1, worker2, worker3 (all now 10.0.20.x).
     - Verified all nodes `Ready`.
   - Rancher re‑installed on Mini PC (no Ubuntu VM):
     - Helm install with cert-manager.
-    - UI accessible at `https://10.0.10.201:30443`.
+    - UI accessible at `https://10.0.10.94:30443`.
     - Cluster imported successfully.
   - LoRa HAT detection resolved (SPI and CS pin confirmed).
   - Cardputer firmware v2.0 written:
@@ -651,12 +651,12 @@ sudo netfilter-persistent save
 - **Accomplishments:**
   - K3s cluster completely rebuilt with new IPs:
     - Uninstalled old K3s from all nodes.
-    - Fresh install on Mini PC master (10.0.10.201).
+    - Fresh install on Mini PC master (10.0.10.94).
     - Re‑joined worker1, worker2, worker3 (all now 10.0.20.x).
     - Verified all nodes `Ready`.
   - Rancher re‑installed on Mini PC (no Ubuntu VM):
     - Helm install with cert-manager.
-    - UI accessible at `https://10.0.10.201:30443`.
+    - UI accessible at `https://10.0.10.94:30443`.
     - Cluster imported successfully.
   - LoRa HAT detection resolved (SPI and CS pin confirmed).
   - Cardputer CFW necessitated and created:
