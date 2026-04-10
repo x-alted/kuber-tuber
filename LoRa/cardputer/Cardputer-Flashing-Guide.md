@@ -241,7 +241,7 @@ Now that both the LoRa gateway (`worker1` with bridge) and the Cardputer are pro
 - **Cause**: Incorrect pin mappings or LoRa module not detected.
 - **Fix**:  
   - Verify the LoRa module is firmly connected to the Cardputer’s LoRa socket.  
-  - Check the pin definitions in the firmware (CS=5, RST=14, BUSY=13, DIO1=12). Some modules may use different pins; adjust accordingly.  
+  - Check the pin definitions in the firmware (CS=GPIO5, RST=GPIO3, BUSY=GPIO6, DIO1=GPIO4) — these must match Section 1.1 above. Some modules may use different pins; adjust accordingly.  
   - Ensure the module is powered (some need 3.3V).  
   - Test with a simple RadioLib example to isolate hardware issues.
 
