@@ -5,7 +5,7 @@
 
 ![K3s](https://img.shields.io/badge/K3s-v1.32.5-blue)
 ![Rancher](https://img.shields.io/badge/Rancher-v2.9-blue)
-![LoRa](https://img.shields.io/badge/LoRa-915MHz-green)
+![LoRa](https://img.shields.io/badge/LoRa-868MHz-green)
 ![License](https://img.shields.io/badge/License-MIT-lightgrey)
 
 ---
