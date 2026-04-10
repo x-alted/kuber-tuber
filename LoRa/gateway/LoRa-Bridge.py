@@ -17,27 +17,62 @@ Dependencies:
 """
 
 import os
+import sys
 import time
-import serial
 import base64
+import subprocess
+import serial
 import requests
 from Crypto.Cipher import AES
 
 # ==================== CONFIGURATION ====================
 
-SERIAL_PORT    = '/dev/ttyAMA0'
-BAUD_RATE      = 9600
-RECEIVER_URL = "http://127.0.0.1:8080/api/v1/messages"
-DOWNLINK_FILE  = '/tmp/lora-downlink.txt'   # write a message here to send to Cardputer
+SERIAL_PORT   = '/dev/ttyAMA0'
+BAUD_RATE     = 9600
+RECEIVER_URL  = "http://lora-receiver.lora-demo.svc.cluster.local:8080/api/v1/messages"
+DOWNLINK_FILE = '/tmp/lora-downlink.txt'   # write a message here to send to Cardputer
 
-AES_KEY = bytes([
-    0x60, 0x3d, 0xeb, 0x10, 0x15, 0xca, 0x71, 0xbe,
-    0x2b, 0x73, 0xae, 0xf0, 0x85, 0x7d, 0x77, 0x81,
-    0x1f, 0x35, 0x2c, 0x07, 0x3b, 0x61, 0x08, 0xd7,
-    0x2d, 0x98, 0x10, 0xa3, 0x09, 0x14, 0xdf, 0xf4
-])
+# ==================== KEY RETRIEVAL ====================
+# The AES-256 key is stored as a Kubernetes secret (lora-encryption-key) in the
+# lora-demo namespace.  The bridge retrieves it via kubectl at startup and keeps
+# it only in memory — it is never written to disk.
 
-last_seq    = {"cardputer": -1}
+def load_aes_key() -> bytes:
+    try:
+        result = subprocess.run(
+            [
+                'kubectl', 'get', 'secret', 'lora-encryption-key',
+                '-n', 'lora-demo',
+                '-o', 'jsonpath={.data.key}',
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except FileNotFoundError:
+        print("[bridge] ERROR: kubectl not found — is K3s installed?", file=sys.stderr)
+        sys.exit(1)
+    except subprocess.CalledProcessError as e:
+        print(f"[bridge] ERROR: kubectl failed: {e.stderr.strip()}", file=sys.stderr)
+        sys.exit(1)
+
+    b64_key = result.stdout.strip()
+    if not b64_key:
+        print("[bridge] ERROR: secret 'lora-encryption-key' not found or 'key' field is empty",
+              file=sys.stderr)
+        sys.exit(1)
+
+    key = base64.b64decode(b64_key)
+    if len(key) != 32:
+        print(f"[bridge] ERROR: expected 32-byte AES key, got {len(key)} bytes", file=sys.stderr)
+        sys.exit(1)
+
+    print(f"[bridge] AES-256 key loaded from Kubernetes secret (lora-demo/lora-encryption-key)")
+    return key
+
+AES_KEY = load_aes_key()
+
+last_seq     = {"cardputer": -1}
 PACKET_GAP_S = 0.2
 
 # ==================== SERIAL INIT ====================
