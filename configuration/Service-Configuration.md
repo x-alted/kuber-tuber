@@ -123,6 +123,49 @@ sudo tailscale up
 - **Bridge script path on device:** `/home/pi/lora-bridge/LoRa-Bridge.py` (or per deployment location).
 - **Logs:** `journalctl -u lora-bridge -f`
 
+### Cluster DNS Configuration on worker1 (required for bridge)
+
+The `lora-bridge.service` connects directly to `http://lora-receiver.lora-demo.svc.cluster.local:8080/api/v1/messages`.
+Because the bridge runs as a **host systemd service** (not inside a pod), worker1 must be able to resolve `*.cluster.local` DNS names via CoreDNS.
+
+**Step 1 - Find the CoreDNS service IP:**
+```bash
+kubectl get svc -n kube-system kube-dns -o jsonpath='{.spec.clusterIP}'
+# Typically: 10.43.0.10
+```
+
+**Step 2 - Configure systemd-resolved on worker1 to forward cluster DNS:**
+```bash
+COREDNS_IP=$(kubectl get svc -n kube-system kube-dns -o jsonpath='{.spec.clusterIP}')
+
+sudo mkdir -p /etc/systemd/resolved.conf.d/
+
+cat << CONF | sudo tee /etc/systemd/resolved.conf.d/k3s-cluster-dns.conf
+[Resolve]
+DNS=${COREDNS_IP}
+Domains=~cluster.local ~svc.cluster.local
+CONF
+
+sudo systemctl restart systemd-resolved
+```
+
+**Step 3 - Verify resolution from worker1:**
+```bash
+resolvectl query lora-receiver.lora-demo.svc.cluster.local
+# Should return the ClusterIP of the lora-receiver service
+```
+
+**Step 4 - Enable and start the bridge service:**
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable lora-bridge
+sudo systemctl start lora-bridge
+journalctl -u lora-bridge -f
+```
+
+> The `kubectl-portforward-lora.service` is no longer used and has been removed. Do **not** run a port-forward; the bridge connects directly via cluster DNS.
+
+
 ### AES-256 Encryption Key — Kubernetes Secret
 
 The bridge script retrieves the key from a Kubernetes secret at startup. Create it once after the cluster is running:
@@ -154,6 +197,6 @@ kubectl get secret lora-encryption-key -n lora-demo
 
 - **Device:** M5Stack Cardputer ADV + CAP.KiRa-1262 LoRa cap
 - **Firmware:** C++ via PlatformIO — see `LoRa/cardputer/src/main.cpp` and `LoRa/cardputer/platformio.ini`.
-- **Frequency:** 915 MHz (North America).
+- **Frequency:** 868 MHz.
 - **Encryption:** AES-256-CBC with PKCS#7 padding; IV prepended; sequence counter in NVS.
-- **Known issue (2026-04-08):** SPI pin mapping for CAP.KiRa-1262 unconfirmed — RadioLib error -2 (CHIP_NOT_FOUND). Awaiting correct pinout. See Issues-Log.md.
+- **Pin mapping (CAP.KiRa-1262 LoRa cap):** RST=GPIO3, BUSY=GPIO6, DIO1=GPIO4. See `LoRa/cardputer/Cardputer-Flashing-Guide.md` §6.2 for the full pin definitions.
