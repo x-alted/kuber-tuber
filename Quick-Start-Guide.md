@@ -133,7 +133,7 @@ There is no strict shutdown order, but to be safe:
 |---------|-------------|
 | Rancher page doesn’t load | Ensure `debian-master` (`10.0.10.94`) is reachable and NodePort `30443` is not blocked by the firewall. |
 | “No packets received” on worker1 | Check antenna connection; ensure LoRa HAT is seated; verify SPI enabled (`ls /dev/spidev*`). |
-| Message appears garbled | The bridge may be missing the encryption key – check `/home/pi/lora/key.b64` exists and has correct base64 key. |
+| Message appears garbled | The bridge loads the AES key from a Kubernetes secret at startup. Verify it exists: `kubectl get secret lora-encryption-key -n lora-demo`. If missing, see `Service-Configuration.md` for creation instructions. |
 | `kubectl` command not found | Install kubectl or run from Mini PC master where it’s already installed. |
 
 For deeper troubleshooting, see `TROUBLESHOOTING.md` and `Issues-Log.md`.
